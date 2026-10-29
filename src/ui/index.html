@@ -1,0 +1,513 @@
+<!DOCTYPE html>
+<html lang="mn">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Banker's Algorithm Simulator · IV-2-13</title>
+<style>
+  :root { color-scheme:light;
+    --bg:#f3f6fb; --card:#fff; --text:#12233f; --muted:#64748b; --line:#e2e8f0; --soft:#f1f5f9;
+    --navy:#1e3a8a; --blue:#2563eb; --gh:#3d5a80;
+    --ok:#15803d; --ok-bg:#e8f8ee; --bad:#dc2626; --bad-bg:#fdecec;
+    --warn:#b45309; --warn-bg:#fff4d6; --info:#2563eb; --info-bg:#e8f0ff;
+    --shadow:0 1px 2px rgba(15,30,60,.05), 0 6px 18px rgba(15,30,60,.05);
+  }
+  * { box-sizing:border-box; }
+  body { margin:0; font:14.5px/1.5 system-ui,"Segoe UI",Roboto,Arial,sans-serif; background:var(--bg); color:var(--text); }
+  .wrap { max-width:1500px; margin:0 auto; padding:0 22px; }
+
+  header.top { background:#fff; border-bottom:1px solid var(--line); }
+  header.top .wrap { display:flex; align-items:center; justify-content:space-between; gap:14px; padding-top:14px; padding-bottom:14px; flex-wrap:wrap; }
+  .brand { display:flex; align-items:center; gap:12px; }
+  .logo { width:38px; height:38px; border-radius:10px; background:var(--navy); color:#fff; display:flex; align-items:center; justify-content:center; font-weight:800; }
+  .brand h1 { margin:0; font-size:19px; }
+  .crumb { color:var(--muted); border-left:1px solid var(--line); padding-left:12px; font-size:13.5px; }
+  .badge { display:inline-flex; align-items:center; gap:8px; padding:7px 16px; border-radius:999px; font-weight:800; font-size:13.5px; letter-spacing:.4px; border:1.5px solid var(--line); color:var(--muted); background:var(--soft); }
+  .badge::before { content:""; width:9px; height:9px; border-radius:50%; background:currentColor; }
+  .badge.safe { color:var(--ok); background:var(--ok-bg); border-color:#9bd9b3; }
+  .badge.unsafe { color:var(--bad); background:var(--bad-bg); border-color:#f3a6a3; }
+
+  .kpis { display:grid; gap:14px; grid-template-columns:repeat(auto-fit,minmax(210px,1fr)); margin:18px 0; }
+  .card { background:var(--card); border:1px solid var(--line); border-radius:14px; box-shadow:var(--shadow); padding:18px; min-width:0; }
+  .kpi { display:flex; align-items:center; gap:14px; padding:14px 18px; }
+  .ico { width:46px; height:46px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-weight:800; font-size:18px; flex:none; }
+  .ico.b { background:#e3edff; color:var(--blue); } .ico.g { background:#dcf5e8; color:var(--ok); }
+  .kl { color:var(--muted); font-size:13px; } .kv { font-size:22px; font-weight:800; line-height:1.2; }
+  .kv.small { font-size:16px; }
+
+  .grid { display:grid; gap:18px; grid-template-columns:minmax(0,1.6fr) minmax(0,1fr); align-items:start; margin-bottom:30px; }
+  @media (max-width:1000px) { .grid { grid-template-columns:minmax(0,1fr); } }
+  h2 { font-size:17px; margin:0 0 4px; } .hint { color:var(--muted); font-size:13px; margin:0 0 12px; }
+
+  .avail { display:flex; gap:10px; flex-wrap:wrap; align-items:flex-end; margin-bottom:12px; padding:10px 12px; background:var(--soft); border-radius:10px; }
+  .avail .lbl { font-weight:700; align-self:center; margin-right:4px; } .avail .lbl small { display:block; font-weight:400; color:var(--muted); font-size:12px; }
+  .rfield { display:flex; flex-direction:column; align-items:center; gap:3px; font-size:12px; font-weight:700; }
+  .dot { display:inline-block; width:9px; height:9px; border-radius:50%; margin-right:4px; }
+  .tablewrap { overflow-x:auto; }
+  table.matrix { border-collapse:separate; border-spacing:0; width:100%; min-width:560px; border:1px solid var(--line); border-radius:10px; overflow:hidden; }
+  table.matrix th { padding:7px 6px; text-align:center; font-size:12.5px; border-bottom:1px solid var(--line); background:var(--soft); color:var(--muted); }
+  table.matrix th.grp { background:var(--gh); color:#fff; font-size:14px; border-left:1px solid #5b7aa0; }
+  table.matrix td { padding:5px 4px; text-align:center; border-bottom:1px solid var(--line); }
+  table.matrix tr:last-child td { border-bottom:none; }
+  table.matrix .gl { border-left:1px solid var(--line); }
+  .pill { display:inline-block; min-width:40px; padding:4px 12px; border-radius:999px; font-weight:800; font-size:13px; text-align:center; }
+  input[type=text] { width:3.1em; padding:6px 3px; text-align:center; border:1.5px solid var(--line); border-radius:8px; background:#fff; color:var(--text); font:inherit; font-weight:600; }
+  input[type=text]:focus { outline:none; border-color:var(--blue); box-shadow:0 0 0 3px var(--info-bg); }
+  input.invalid { border-color:var(--bad); background:var(--bad-bg); }
+  .needcell { display:inline-block; min-width:2.6em; padding:6px 3px; border-radius:8px; background:var(--soft); font-weight:700; }
+  .needcell.neg { background:var(--bad-bg); color:var(--bad); }
+
+  button { font:inherit; font-weight:600; padding:8px 14px; border:1.5px solid var(--line); border-radius:9px; background:#fff; color:var(--text); cursor:pointer; transition:.12s; }
+  button:hover { border-color:var(--blue); color:var(--blue); }
+  button.primary { background:var(--navy); border-color:var(--navy); color:#fff; } button.primary:hover { background:#1d4ed8; color:#fff; }
+  button.danger:hover { border-color:var(--bad); color:var(--bad); }
+  button:disabled { opacity:.45; cursor:default; }
+  .btnrow { display:flex; gap:8px; flex-wrap:wrap; align-items:center; margin-top:14px; } .spacer { flex:1; }
+
+  .field { margin-bottom:12px; } .field > label { display:block; font-weight:700; font-size:13px; margin-bottom:5px; }
+  select { font:inherit; font-weight:600; padding:8px 10px; border:1.5px solid var(--line); border-radius:9px; background:#fff; color:var(--text); min-width:120px; }
+  .vec { display:flex; gap:12px; flex-wrap:wrap; } .vec input { width:3.8em; padding:8px 4px; }
+  .procinfo { background:var(--soft); border-radius:10px; padding:9px 12px; font-size:13px; color:var(--muted); margin-bottom:12px; } .procinfo b { color:var(--text); }
+  .chipv { display:inline-block; padding:1px 8px; border-radius:6px; font-weight:700; font-variant-numeric:tabular-nums; background:#fff; border:1px solid var(--line); color:var(--text); }
+  #msg { margin-top:14px; border-radius:11px; padding:12px 14px; border:1.5px solid var(--line); background:var(--soft); color:var(--muted); }
+  #msg .mt { font-weight:800; display:block; margin-bottom:2px; }
+  #msg.granted, #msg.released { background:var(--ok-bg); border-color:#9bd9b3; color:var(--ok); }
+  #msg.wait { background:var(--warn-bg); border-color:#ecc56a; color:var(--warn); }
+  #msg.unsafe, #msg.error { background:var(--bad-bg); border-color:#f3a6a3; color:var(--bad); }
+  #msg.loaded, #msg.reset { background:var(--info-bg); border-color:#a9c3f5; color:var(--info); }
+
+  .chain { display:flex; align-items:center; flex-wrap:wrap; gap:10px; margin:8px 0 14px; }
+  .scard { border:2px solid var(--line); border-radius:14px; padding:9px 14px; text-align:center; background:#fff; cursor:pointer; min-width:96px; }
+  .scard.sel { border-color:var(--blue); box-shadow:0 0 0 3px var(--info-bg); }
+  .scard .chk { color:var(--ok); font-weight:800; margin-left:6px; } .scard .wv { font-size:12px; color:var(--muted); margin-top:3px; font-variant-numeric:tabular-nums; }
+  .arrow { color:var(--muted); font-weight:700; }
+  .unsafebox { background:var(--bad-bg); color:var(--bad); border:1.5px solid #f3a6a3; border-radius:11px; padding:12px 14px; margin:8px 0 12px; } .unsafebox b { display:block; margin-bottom:4px; }
+  table.steps { border-collapse:collapse; width:100%; min-width:480px; font-size:13.5px; }
+  table.steps th { text-align:left; padding:8px 10px; background:var(--soft); color:var(--muted); font-size:12.5px; border-bottom:1px solid var(--line); }
+  table.steps td { padding:8px 10px; border-bottom:1px solid var(--line); font-variant-numeric:tabular-nums; }
+  table.steps tr.sel td { background:var(--info-bg); font-weight:700; } table.steps tr { cursor:pointer; }
+  .stepnav { display:flex; gap:8px; align-items:center; margin:10px 0 0; } .stepnav small { color:var(--muted); }
+  .explain { color:var(--muted); font-size:12.5px; margin-top:8px; }
+
+  #graph { min-height:260px; border:2px dashed var(--line); border-radius:12px; padding:12px; overflow:auto; color:var(--muted); display:flex; align-items:center; justify-content:center; text-align:center; background:#fafbfe; }
+  .legend { display:flex; flex-wrap:wrap; gap:14px; margin-top:10px; font-size:12.5px; color:var(--muted); }
+  .legend i { display:inline-block; width:24px; height:0; border-top:3px solid; vertical-align:middle; margin-right:6px; }
+  .legend i.alloc { border-color:#2563eb; } .legend i.need { border-color:#94a3b8; border-top-style:dashed; }
+  .stats { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:10px; margin-bottom:12px; }
+  @media (max-width:600px) { .stats { grid-template-columns:repeat(2,minmax(0,1fr)); } }
+  .stat { border-radius:11px; padding:10px 12px; border:1.5px solid var(--line); background:var(--soft); }
+  .stat b { display:block; font-size:22px; line-height:1.15; } .stat span { font-size:12.5px; font-weight:700; }
+  .stat.g { background:var(--ok-bg); border-color:#9bd9b3; color:var(--ok); }
+  .stat.w { background:var(--warn-bg); border-color:#ecc56a; color:var(--warn); }
+  .stat.d { background:var(--bad-bg); border-color:#f3a6a3; color:var(--bad); }
+  .stat.e { background:#eef0f4; border-color:#cdd3dc; color:#475569; }
+  .loghead { display:flex; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap; }
+  .logscroll { max-height:340px; overflow:auto; border:1px solid var(--line); border-radius:10px; }
+  table.log { border-collapse:collapse; width:100%; min-width:640px; font-size:13px; }
+  table.log th { position:sticky; top:0; text-align:left; padding:8px 10px; background:var(--soft); color:var(--muted); font-size:12.5px; border-bottom:1px solid var(--line); }
+  table.log td { padding:7px 10px; border-bottom:1px solid var(--line); font-variant-numeric:tabular-nums; vertical-align:top; }
+  .tag { display:inline-block; padding:2px 9px; border-radius:999px; font-weight:800; font-size:12px; }
+  .tag.granted, .tag.released { background:var(--ok-bg); color:var(--ok); }
+  .tag.wait { background:var(--warn-bg); color:var(--warn); }
+  .tag.unsafe { background:var(--bad-bg); color:var(--bad); }
+  .tag.error { background:#eef0f4; color:#475569; }
+  .logempty { padding:18px; text-align:center; color:var(--muted); }
+  .checks { margin:2px 0 10px; padding:8px 12px; border:1px solid var(--line); border-radius:10px; background:#fff; }
+  .checks .ct { font-size:12.5px; font-weight:800; color:var(--muted); margin-bottom:2px; }
+  .ck { display:flex; gap:8px; align-items:baseline; padding:4px 0; font-size:13px; font-variant-numeric:tabular-nums; }
+  .ck .mk { font-weight:800; width:1.3em; flex:none; text-align:center; }
+  .ck.ok .mk { color:var(--ok); } .ck.bad .mk { color:var(--bad); } .ck.skip, .ck.pend { color:var(--muted); }
+  .ck.bad { color:var(--bad); }
+  .stepnav select { padding:6px 8px; min-width:0; }
+  footer { text-align:right; color:var(--muted); font-size:12px; padding:0 0 24px; }
+</style>
+</head>
+<body>
+<header class="top"><div class="wrap">
+  <div class="brand"><div class="logo">B</div><h1>Banker's Algorithm Simulator</h1><span class="crumb">Operating Systems / IV-2-13</span></div>
+  <span id="badge" class="badge">…</span>
+</div></header>
+
+<div class="wrap">
+  <div class="kpis">
+    <div class="card kpi"><div class="ico b">P</div><div><div class="kl">Processes</div><div class="kv" id="kN">–</div></div></div>
+    <div class="card kpi"><div class="ico b">R</div><div><div class="kl">Resource types</div><div class="kv" id="kM">–</div></div></div>
+    <div class="card kpi"><div class="ico g">A</div><div><div class="kl">Available</div><div class="kv" id="kAvail">–</div></div></div>
+    <div class="card kpi"><div class="ico g">✓</div><div><div class="kl">Safe sequence</div><div class="kv small" id="kSeq">–</div></div></div>
+  </div>
+
+  <div class="grid">
+    <section class="card">
+      <h2>Resource Allocation</h2>
+      <p class="hint">Need = Max − Allocation. Тоонуудыг засаад «Run safety check» дарна.</p>
+      <div id="tables"></div>
+      <div class="btnrow">
+        <select id="preset" title="Бэлэн туршилтын сценари"><option value="">Сценари сонгох…</option></select>
+        <button id="btnExample">Load example</button>
+        <button id="btnAddP">+ Process</button><button id="btnDelP" title="Сүүлийн процессыг хасах">− Process</button>
+        <button id="btnAddR">+ Resource</button><button id="btnDelR" title="Сүүлийн нөөцийг хасах">− Resource</button>
+        <span class="spacer"></span>
+        <button id="btnReset" class="danger">Reset</button>
+        <button class="primary" id="btnApply">▶ Run safety check</button>
+      </div>
+    </section>
+
+    <section class="card">
+      <h2>Request resources</h2>
+      <p class="hint">Request нь аюулгүй бол бодитоор олгогдоно, аюултай бол татгалзаж буцаана (rollback).</p>
+      <div class="field"><label for="reqProc">Process</label><select id="reqProc"></select></div>
+      <div class="procinfo" id="procinfo"></div>
+      <div class="field"><label>Хэдийг хүсэх / чөлөөлөх вэ</label><div class="vec" id="reqVec"></div></div>
+      <div class="checks" id="checks"></div>
+      <div class="btnrow" style="margin-top:4px">
+        <button class="primary" id="btnRequest">✓ Request</button>
+        <button id="btnRelease">↺ Release resources</button>
+      </div>
+      <div id="msg" role="status" aria-live="polite"><span class="mt">Үр дүн</span>Хүсэлт илгээхэд үр дүн энд гарна.</div>
+    </section>
+
+    <section class="card">
+      <h2>Safety analysis</h2>
+      <p class="hint">Процессыг дуусгаж болох дараалал ба алхам бүрийн Work вектор.</p>
+      <div id="seq"></div>
+      <div class="tablewrap" id="steps"></div>
+    </section>
+
+    <section class="card">
+      <h2>Resource graph</h2>
+      <p class="hint">Процесс ба нөөцийн холбоо.</p>
+      <div id="graph"></div>
+      <div class="legend">
+        <span><i class="alloc"></i>Allocation (нөөц → процесс)</span>
+        <span><i class="need"></i>Need (процесс → нөөц)</span>
+      </div>
+    </section>
+    <section class="card" style="grid-column:1/-1">
+      <div class="loghead">
+        <div><h2>Request log</h2><p class="hint" style="margin:0 0 12px">Request / Release бүрийн цаг, үр дүн, шалтгаан. Тоолуур нь зөвхөн Request-ийг тоолно.</p></div>
+        <button id="btnClearLog" class="danger">Clear log</button>
+      </div>
+      <div class="stats">
+        <div class="stat g"><b id="cG">0</b><span>Granted</span></div>
+        <div class="stat w"><b id="cW">0</b><span>Waiting</span></div>
+        <div class="stat d"><b id="cD">0</b><span>Denied (unsafe)</span></div>
+        <div class="stat e"><b id="cE">0</b><span>Errors</span></div>
+      </div>
+      <div class="logscroll" id="logbox"></div>
+    </section>
+  </div>
+  <footer>Safety Algorithm · O(m × n²)</footer>
+</div>
+
+<script src="graph.js"></script>
+<script>
+"use strict";
+const $ = (id) => document.getElementById(id);
+/* Өнгөний нэгдсэн палитр: граф (graph.js) мөн үүнийг ашиглана. */
+window.BANKER_COLORS = {
+  process: ["#2f6fe4", "#1fb386", "#8a44c8", "#f5b50a", "#0fa3b8", "#e0483e", "#64748b", "#d4577b"],
+  processText: ["#fff", "#fff", "#fff", "#3a2a00", "#fff", "#fff", "#fff", "#fff"],
+  resource: ["#e0483e", "#2563eb", "#f0a500", "#7c3aed", "#0891b2", "#db2777"],
+  alloc: "#2563eb", need: "#94a3b8", ok: "#15803d", bad: "#dc2626"
+};
+const C = window.BANKER_COLORS;
+let draft = { available: [], max: [], allocation: [] };
+let lastState = null;
+let selStep = 0;
+
+/* ---------- сервер ---------- */
+async function api(path, method, body) {
+  let res;
+  try {
+    res = await fetch(path, { method: method || "GET", headers: { "Content-Type": "application/json" }, body: body === undefined ? undefined : JSON.stringify(body) });
+  } catch (e) { throw new Error("Сервертэй холбогдож чадсангүй. python src/server.py ажиллаж байгаа эсэхийг шалгана уу."); }
+  let data = {};
+  try { data = await res.json(); } catch (e) { /* хоосон */ }
+  if (!res.ok) throw new Error(data.error || ("Серверийн алдаа: HTTP " + res.status));
+  return data;
+}
+function toVal(s) { s = String(s).trim(); return /^-?\d+$/.test(s) ? Number(s) : s; }
+const vec = (a) => "(" + a.join(", ") + ")";
+
+/* ---------- DOM туслахууд ---------- */
+function el(tag, cls, text) { const e = document.createElement(tag); if (cls) e.className = cls; if (text !== undefined) e.textContent = text; return e; }
+function pill(i) { const s = el("span", "pill", "P" + i); const k = i % C.process.length; s.style.background = C.process[k]; s.style.color = C.processText[k]; return s; }
+function numInput(value, onChange) {
+  const i = el("input"); i.type = "text"; i.value = value; i.inputMode = "numeric";
+  i.addEventListener("input", () => { i.classList.remove("invalid"); onChange(i); }); return i;
+}
+function rlabel(j) { const s = el("span"); const d = el("span", "dot"); d.style.background = C.resource[j % C.resource.length]; s.appendChild(d); s.appendChild(document.createTextNode("R" + j)); return s; }
+function td(child, cls) { const t = el("td", cls || ""); if (child) t.appendChild(child); return t; }
+
+/* ---------- хүснэгт ---------- */
+function renderTables() {
+  const n = draft.max.length, m = draft.available.length;
+  const root = $("tables"); root.textContent = "";
+
+  const av = el("div", "avail");
+  const lbl = el("div", "lbl", "Available"); lbl.appendChild(el("small", null, "чөлөөтэй нөөц (засаж болно)")); av.appendChild(lbl);
+  for (let j = 0; j < m; j++) { const f = el("div", "rfield"); f.appendChild(rlabel(j)); f.appendChild(numInput(draft.available[j], (i) => { draft.available[j] = i.value; })); av.appendChild(f); }
+  root.appendChild(av);
+
+  const t = el("table", "matrix");
+  const top = el("tr"); top.appendChild(el("th", null, ""));
+  [["Max", "Хамгийн их хэрэгцээ"], ["Allocation", "Одоо эзэлж буй"], ["Need", "Дахин хэрэгтэй = Max − Allocation"]].forEach(([nm, tip]) => { const h = el("th", "grp", nm); h.colSpan = m; h.title = tip; top.appendChild(h); });
+  t.appendChild(top);
+  const sub = el("tr"); sub.appendChild(el("th", null, "Process"));
+  for (let k = 0; k < 3; k++) for (let j = 0; j < m; j++) { const h = el("th", j === 0 && k ? "gl" : ""); h.appendChild(rlabel(j)); sub.appendChild(h); }
+  t.appendChild(sub);
+
+  const needCells = [];
+  for (let i = 0; i < n; i++) {
+    const tr = el("tr"); tr.appendChild(td(pill(i)));
+    for (let j = 0; j < m; j++) tr.appendChild(td(numInput(draft.max[i][j], (x) => { draft.max[i][j] = x.value; updateNeed(); })));
+    for (let j = 0; j < m; j++) tr.appendChild(td(numInput(draft.allocation[i][j], (x) => { draft.allocation[i][j] = x.value; updateNeed(); }), j === 0 ? "gl" : ""));
+    needCells[i] = [];
+    for (let j = 0; j < m; j++) { const sp = el("span", "needcell"); needCells[i][j] = sp; tr.appendChild(td(sp, j === 0 ? "gl" : "")); }
+    t.appendChild(tr);
+  }
+  const wrap = el("div", "tablewrap"); wrap.appendChild(t); root.appendChild(wrap);
+
+  function updateNeed() {
+    for (let i = 0; i < n; i++) for (let j = 0; j < m; j++) {
+      const a = Number(draft.max[i][j]), b = Number(draft.allocation[i][j]), c = needCells[i][j];
+      if (String(draft.max[i][j]).trim() === "" || String(draft.allocation[i][j]).trim() === "" || isNaN(a) || isNaN(b)) { c.textContent = "?"; c.classList.remove("neg"); }
+      else { c.textContent = String(a - b); c.classList.toggle("neg", a - b < 0); }
+    }
+  }
+  updateNeed();
+  renderRequestForm();
+}
+
+/* ---------- хүсэлтийн форм ---------- */
+function renderRequestForm() {
+  const n = draft.max.length, m = draft.available.length;
+  const sel = $("reqProc"), keep = sel.value; sel.textContent = "";
+  for (let i = 0; i < n; i++) { const o = el("option", null, "P" + i); o.value = i; sel.appendChild(o); }
+  if (keep !== "" && Number(keep) < n) sel.value = keep;
+  const box = $("reqVec"); const old = Array.from(box.querySelectorAll("input")).map((e) => e.value); box.textContent = "";
+  for (let j = 0; j < m; j++) {
+    const f = el("div", "rfield"); f.appendChild(rlabel(j));
+    const inp = el("input"); inp.type = "text"; inp.inputMode = "numeric"; inp.value = old[j] !== undefined ? old[j] : "0";
+    inp.addEventListener("input", livePreview);
+    f.appendChild(inp); box.appendChild(f);
+  }
+  updateProcInfo(); livePreview();
+}
+function updateProcInfo() {
+  const box = $("procinfo"); box.textContent = "";
+  const i = Number($("reqProc").value);
+  if (!lastState || isNaN(i) || i >= lastState.n) { box.textContent = "Процесс сонгоно уу."; return; }
+  box.appendChild(el("b", null, "P" + i)); box.appendChild(document.createTextNode(" одоо барьж буй "));
+  box.appendChild(el("span", "chipv", vec(lastState.allocation[i])));
+  box.appendChild(document.createTextNode(", дахин хэрэгтэй (Need) "));
+  box.appendChild(el("span", "chipv", vec(lastState.need[i])));
+  box.appendChild(document.createTextNode(". Чөлөөтэй нөөц "));
+  box.appendChild(el("span", "chipv", vec(lastState.available))); box.appendChild(document.createTextNode("."));
+}
+function readVec() { return Array.from($("reqVec").querySelectorAll("input")).map((e) => toVal(e.value)); }
+
+/* ---------- Request-ийн ✔/✘ шалгалт ---------- */
+function renderChecks(state, proc, v, status) {
+  const box = $("checks"); box.textContent = "";
+  box.appendChild(el("div", "ct", "Банкирын алгоритмын 3 алхам"));
+  const row = (cls, mark, text) => { const r = el("div", "ck " + cls); r.appendChild(el("span", "mk", mark)); r.appendChild(el("span", null, text)); box.appendChild(r); };
+  if (!state || isNaN(proc) || proc >= state.n) { row("skip", "–", "Процесс сонгоогүй."); return; }
+  if (v.length !== state.m || v.some((x) => typeof x !== "number" || !Number.isInteger(x) || x < 0)) { row("bad", "✖", "Хүсэлтийн вектор буруу (сөрөг биш бүхэл тоо байх ёстой)."); return; }
+  const need = state.need[proc], av = state.available;
+  const c1 = v.every((x, j) => x <= need[j]), c2 = v.every((x, j) => x <= av[j]);
+  row(c1 ? "ok" : "bad", c1 ? "✔" : "✖", "1. Request " + vec(v) + (c1 ? " ≤ " : " ≰ ") + "Need " + vec(need) + (c1 ? "" : "  (Max-аас хэтэрсэн)"));
+  row(c2 ? "ok" : "bad", c2 ? "✔" : "✖", "2. Request " + vec(v) + (c2 ? " ≤ " : " ≰ ") + "Available " + vec(av) + (c2 ? "" : "  (одоо хүрэхгүй)"));
+  if (!c1 || !c2) row("skip", "–", "3. Safety шалгалт хийгдэхгүй (өмнөх алхам амжилтгүй).");
+  else if (status === "granted") row("ok", "✔", "3. Түр олгоход төлөв SAFE хэвээр: олгосон.");
+  else if (status === "unsafe") row("bad", "✖", "3. Түр олгоход төлөв UNSAFE болно: татгалзсан.");
+  else if (status) row("skip", "–", "3. Safety шалгалт хийгдсэнгүй.");
+  else row("pend", "…", "3. Request дарахад safety шалгалт хийгдэнэ.");
+}
+function livePreview() { renderChecks(lastState, Number($("reqProc").value), readVec(), null); }
+
+/* ---------- Request log ба тоолуур ---------- */
+const stats = { granted: 0, wait: 0, unsafe: 0, error: 0 };
+let logRows = [], logSeq = 0;
+function pushLog(kind, proc, v, status, reason) {
+  logRows.push({ n: ++logSeq, t: new Date().toLocaleTimeString("en-GB"), kind, proc, v: v.slice(), status, reason });
+  if (kind === "request" && stats[status] !== undefined) stats[status]++;
+  else if (status === "error") stats.error++;
+  renderLog();
+}
+function renderLog() {
+  $("cG").textContent = stats.granted; $("cW").textContent = stats.wait; $("cD").textContent = stats.unsafe; $("cE").textContent = stats.error;
+  const box = $("logbox"); box.textContent = "";
+  if (!logRows.length) { box.appendChild(el("div", "logempty", "Одоогоор хүсэлт илгээгдээгүй байна.")); return; }
+  const t = el("table", "log"), hr = el("tr");
+  ["#", "Цаг", "Process", "Төрөл", "Вектор", "Үр дүн", "Шалтгаан"].forEach((x) => hr.appendChild(el("th", null, x))); t.appendChild(hr);
+  const LAB = { granted: "Granted", released: "Released", wait: "Waiting", unsafe: "Denied", error: "Error" };
+  logRows.slice().reverse().forEach((r) => {
+    const tr = el("tr"); tr.appendChild(el("td", null, String(r.n))); tr.appendChild(el("td", null, r.t));
+    tr.appendChild(isNaN(r.proc) ? el("td", null, "–") : td(pill(r.proc)));
+    tr.appendChild(el("td", null, r.kind === "request" ? "Request" : "Release")); tr.appendChild(el("td", null, vec(r.v)));
+    tr.appendChild(td(el("span", "tag " + r.status, LAB[r.status] || r.status))); tr.appendChild(el("td", null, r.reason || ""));
+    t.appendChild(tr);
+  });
+  box.appendChild(t);
+}
+$("btnClearLog").onclick = () => { logRows = []; logSeq = 0; stats.granted = stats.wait = stats.unsafe = stats.error = 0; renderLog(); };
+
+/* ---------- Request / Release ---------- */
+async function doAction(kind) {
+  const proc = Number($("reqProc").value), v = readVec();
+  const before = lastState ? JSON.parse(JSON.stringify(lastState)) : null;
+  const isReq = kind === "request";
+  try {
+    const data = await api(isReq ? "/api/request" : "/api/release", "POST", isReq ? { process: proc, request: v } : { process: proc, release: v });
+    const r = data.request_result || { status: "error", message: "Серверээс үр дүн ирсэнгүй." };
+    handleResult(data); pushLog(kind, proc, v, r.status, r.message);
+    if (isReq) renderChecks(before, proc, v, r.status);
+  } catch (e) {
+    fail(e); pushLog(kind, proc, v, "error", e.message);
+    if (isReq) renderChecks(before, proc, v, "error");
+  }
+}
+
+/* ---------- Бэлэн сценариуд ---------- */
+function bigScenario(n, m, seed) {
+  let x = seed; const rnd = (k) => { x = (x * 1664525 + 1013904223) % 4294967296; return Math.floor((x / 4294967296) * k); };
+  const available = Array.from({ length: m }, () => 3 + rnd(4)); let work = available.slice();
+  const max = [], allocation = [];
+  for (let i = 0; i < n; i++) {   // P0..P(n-1) дарааллаар дуусч болох тул төлөв SAFE
+    const a = Array.from({ length: m }, () => rnd(4)), nd = work.map((w) => rnd(w + 1));
+    allocation.push(a); max.push(a.map((v, j) => v + nd[j])); work = work.map((w, j) => w + a[j]);
+  }
+  return { available, max, allocation };
+}
+const PRESETS = {
+  book: { name: "Номын жишээ (5 процесс, 3 нөөц)", data: { available: [3, 3, 2],
+    max: [[7, 5, 3], [3, 2, 2], [9, 0, 2], [2, 2, 2], [4, 3, 3]], allocation: [[0, 1, 0], [2, 0, 0], [3, 0, 2], [2, 1, 1], [0, 0, 2]] },
+    note: "Туршиж үз: P1 (1,0,2) → олгоно; дараа нь P4 (3,3,0) → хүлээнэ; P0 (0,2,0) → UNSAFE тул татгалзана." },
+  unsafe: { name: "Unsafe эхний төлөв (Release хийвэл safe)", data: { available: [1, 1],
+    max: [[4, 3], [3, 3], [5, 2]], allocation: [[2, 1], [1, 2], [2, 0]] },
+    note: "Эхнээсээ UNSAFE. Туршиж үз: P0 дээр Release (2,1) хийвэл төлөв SAFE болно." },
+  big: { name: "Том туршилт 10×5", data: bigScenario(10, 5, 2026), note: "10 процесс, 5 нөөц. Төлөв SAFE." }
+};
+Object.keys(PRESETS).forEach((k) => { const o = el("option", null, PRESETS[k].name); o.value = k; $("preset").appendChild(o); });
+$("preset").onchange = async () => {
+  const k = $("preset").value; if (!k) return; $("preset").value = "";
+  try { const data = await api("/api/load", "POST", PRESETS[k].data); applyState(data.state); showMsg("loaded", "«" + PRESETS[k].name + "» ачааллаа. " + PRESETS[k].note); }
+  catch (e) { fail(e); }
+};
+
+/* ---------- мэдэгдэл ---------- */
+const TITLES = { granted: "✔ Request can be granted: олгосон", released: "✔ Чөлөөлсөн", wait: "⏳ Хүлээнэ (нөөц хүрэлцэхгүй)",
+                 unsafe: "✖ Татгалзсан: олговол UNSAFE болно", error: "⚠ Алдаа", loaded: "ℹ Ачааллаа", reset: "ℹ Буцаалаа" };
+function showMsg(status, message) {
+  const m = $("msg"); m.className = status; m.textContent = "";
+  m.appendChild(el("span", "mt", TITLES[status] || status)); m.appendChild(document.createTextNode(message));
+}
+
+/* ---------- Автомат тоглуулах ---------- */
+let playTimer = null, playMs = 800;
+function stopPlay() { if (playTimer) { clearInterval(playTimer); playTimer = null; } }
+function startPlay() {
+  stopPlay();
+  playTimer = setInterval(() => {
+    if (!lastState || selStep >= lastState.steps.length - 1) { stopPlay(); renderSafety(); return; }
+    selStep++; renderSafety();
+  }, playMs);
+}
+function togglePlay() {
+  if (playTimer) { stopPlay(); renderSafety(); return; }
+  if (!lastState || !lastState.steps.length) return;
+  if (selStep >= lastState.steps.length - 1) selStep = 0;
+  startPlay(); renderSafety();
+}
+function goStep(k) { stopPlay(); if (!lastState) return; selStep = Math.max(0, Math.min(lastState.steps.length - 1, k)); renderSafety(); }
+
+/* ---------- Safety analysis ---------- */
+function renderSafety() {
+  const state = lastState; if (!state) return;
+  const seq = $("seq"), box = $("steps"); seq.textContent = ""; box.textContent = "";
+  if (state.safe) {
+    const chain = el("div", "chain");
+    state.steps.forEach((s, k) => {
+      if (k) chain.appendChild(el("span", "arrow", "→"));
+      const idx = Number(s.process.slice(1)); const c = el("div", "scard" + (k === selStep ? " sel" : ""));
+      const top = el("div"); top.appendChild(pill(idx)); top.appendChild(el("span", "chk", "✓")); c.appendChild(top);
+      c.appendChild(el("div", "wv", "Work " + vec(s.work_after))); c.onclick = () => goStep(k);
+      chain.appendChild(c);
+    });
+    seq.appendChild(chain);
+  } else {
+    const done = state.steps.map((s) => s.process); const stuck = [];
+    for (let i = 0; i < state.n; i++) if (!done.includes("P" + i)) stuck.push(i);
+    const b = el("div", "unsafebox"); b.appendChild(el("b", null, "UNSAFE: Safe sequence байхгүй"));
+    b.appendChild(document.createTextNode("Дараах процессууд дуусч чадахгүй (Need нь Work-оос их): "));
+    b.appendChild(document.createElement("br")); stuck.forEach((i) => { const p = pill(i); p.style.margin = "4px 6px 0 0"; b.appendChild(p); });
+    seq.appendChild(b);
+  }
+  if (!state.steps.length) return;
+  const t = el("table", "steps"); const hr = el("tr");
+  ["Step", "Process", "Work before", "Need", "Work after"].forEach((x) => hr.appendChild(el("th", null, x))); t.appendChild(hr);
+  state.steps.forEach((s, k) => {
+    const idx = Number(s.process.slice(1)); const tr = el("tr", k === selStep ? "sel" : ""); tr.onclick = () => goStep(k);
+    tr.appendChild(el("td", null, (k === selStep ? "→ " : "") + (k + 1))); tr.appendChild(td(pill(idx)));
+    tr.appendChild(el("td", null, vec(s.work_before))); tr.appendChild(el("td", null, vec(state.need[idx]))); tr.appendChild(el("td", null, vec(s.work_after)));
+    t.appendChild(tr);
+  });
+  box.appendChild(t);
+  const nav = el("div", "stepnav");
+  const prev = el("button", null, "◀ Өмнөх"), next = el("button", null, "Дараах ▶");
+  prev.disabled = selStep <= 0; next.disabled = selStep >= state.steps.length - 1;
+  prev.onclick = () => goStep(selStep - 1); next.onclick = () => goStep(selStep + 1);
+  const play = el("button", "primary", playTimer ? "⏸ Pause" : "▶ Play"); play.onclick = togglePlay;
+  const sp = el("select"); [["1600", "0.5×"], ["800", "1×"], ["400", "2×"], ["200", "4×"]].forEach(([v, t]) => { const o = el("option", null, t); o.value = v; sp.appendChild(o); });
+  sp.value = String(playMs); sp.title = "Тоглуулах хурд";
+  sp.onchange = () => { playMs = Number(sp.value); if (playTimer) startPlay(); };
+  nav.appendChild(prev); nav.appendChild(next); nav.appendChild(play); nav.appendChild(sp);
+  nav.appendChild(el("small", null, "Алхам " + (selStep + 1) + " / " + state.steps.length));
+  box.appendChild(nav);
+  box.appendChild(el("div", "explain", "Work: тухайн мөчид чөлөөтэй гэж тооцох нөөц. Процесс дуусаад өөрийн Allocation-ийг буцаах тул Work нэмэгдэнэ. Процесс зөвхөн Need ≤ Work үед дуусч чадна."));
+}
+
+/* ---------- төлөв ---------- */
+function applyState(state) {
+  stopPlay(); lastState = state; selStep = 0;
+  draft = { available: state.available.map(String), max: state.max.map((r) => r.map(String)), allocation: state.allocation.map((r) => r.map(String)) };
+  renderTables();
+  $("kN").textContent = state.n; $("kM").textContent = state.m; $("kAvail").textContent = vec(state.available);
+  const ks = $("kSeq"); ks.textContent = state.safe ? state.sequence.join(" → ") : "Байхгүй (UNSAFE)";
+  const b = $("badge"); b.className = "badge " + (state.safe ? "safe" : "unsafe"); b.textContent = state.safe ? "SAFE STATE" : "UNSAFE STATE";
+  renderSafety();
+  const g = $("graph");
+  if (typeof window.drawGraph === "function") { try { window.drawGraph(state, g); } catch (e) { g.textContent = "Граф зурахад алдаа гарлаа: " + e.message; } }
+  else { g.textContent = "Resource graph хараахан хэрэгжээгүй."; }
+}
+function handleResult(data) { if (data.request_result) showMsg(data.request_result.status, data.request_result.message); applyState(data.state); }
+function fail(e) { showMsg("error", e.message); }
+
+/* ---------- товчнууд ---------- */
+$("reqProc").addEventListener("change", () => { updateProcInfo(); livePreview(); });
+$("btnApply").onclick = async () => {
+  document.querySelectorAll("#tables input").forEach((i) => i.classList.remove("invalid"));
+  try {
+    const body = { available: draft.available.map(toVal), max: draft.max.map((r) => r.map(toVal)), allocation: draft.allocation.map((r) => r.map(toVal)) };
+    const data = await api("/api/load", "POST", body);
+    showMsg("loaded", "Өгөгдлийг хэрэглэж, safety шалгалтыг ажиллууллаа."); applyState(data.state);
+  } catch (e) {
+    showMsg("error", e.message);
+    document.querySelectorAll("#tables input").forEach((i) => { if (!/^\d+$/.test(i.value.trim())) i.classList.add("invalid"); });
+  }
+};
+$("btnExample").onclick = () => api("/api/example", "POST", {}).then(handleResult).catch(fail);
+$("btnReset").onclick = () => api("/api/reset", "POST", {}).then(handleResult).catch(fail);
+$("btnRequest").onclick = () => doAction("request");
+$("btnRelease").onclick = () => doAction("release");
+$("btnAddP").onclick = () => { const m = draft.available.length; draft.max.push(Array(m).fill("0")); draft.allocation.push(Array(m).fill("0")); renderTables(); };
+$("btnDelP").onclick = () => { if (draft.max.length > 1) { draft.max.pop(); draft.allocation.pop(); renderTables(); } else showMsg("error", "Дор хаяж 1 процесс байх ёстой."); };
+$("btnAddR").onclick = () => { draft.available.push("0"); draft.max.forEach((r) => r.push("0")); draft.allocation.forEach((r) => r.push("0")); renderTables(); };
+$("btnDelR").onclick = () => { if (draft.available.length > 1) { draft.available.pop(); draft.max.forEach((r) => r.pop()); draft.allocation.forEach((r) => r.pop()); renderTables(); } else showMsg("error", "Дор хаяж 1 нөөц байх ёстой."); };
+
+renderLog();
+api("/api/state").then(applyState).catch(fail);
+</script>
+</body>
+</html>
