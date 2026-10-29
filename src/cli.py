@@ -122,7 +122,10 @@ def execute(b, line):
     if cmd in ("EXIT", "QUIT"):
         return None
     if cmd == "*":
+        if len(parts) != 1:
+            return "алдаа: * команд нэмэлт утга авахгүй"
         return format_state(b)
+
     if cmd in ("RQ", "RL"):
         if len(parts) != 2 + b.m:
             return (f"алдаа: {cmd} <customer> + {b.m} нөөцийн утга хэрэгтэй "
