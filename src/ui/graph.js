@@ -6,7 +6,7 @@
  *   → Цэнхэр бүдүүн сум  R → P  : Allocation (нөөц процесст олгогдсон, тоо = хэдэн нэгж)
  *   ⇢ Саарал тасархай сум P → R : Need (процесс цаашид хүсч БОЛЗОШГҮЙ нөөц = "claim edge")
  *
- * ЮУГААР САЙН ОЙЛГОГДОХ ВЭ:
+ * ЮУГААР ОЙЛГОМЖТОЙ БОЛГОСОН БЭ:
  *   - Процессын булан дахь тоотой цагираг: Safe sequence-ийн дараалал (1, 2, 3 ...).
  *     Улаан ✖ = энэ процесс дуусч чадахгүй (UNSAFE).
  *   - "Дараах ▶" товч: Safe sequence-ийг граф дээр алхам алхмаар тоглуулна.
@@ -29,10 +29,10 @@
    * ------------------------------------------------------------- */
   var CFG = {
     PAD: 30,          // зүүн/баруун хоосон зай
-    PROC_Y: 70,       // процессын төвийн y
+    PROC_Y: 66,       // процессын төвийн y
     PROC_R: 22,       // процессын радиус
     BOX_W: 132,       // нөөцийн хүрээний өргөн
-    BOX_TOP: 250,     // нөөцийн хүрээний дээд y
+    BOX_TOP: 215,     // нөөцийн хүрээний дээд y
     DOT_R: 6,         // нэгж (цэг)-ийн радиус
     DOT_COLS: 6,      // нэг мөрөнд хэдэн цэг
     DOT_MAX: 18,      // энэ тооноос их нэгжтэй бол цэгийн оронд пропорциональ туузаар зурна
@@ -125,7 +125,7 @@
       viewBox: "0 0 " + W + " " + H, role: "img",
       "aria-label": "Resource allocation graph: " + n + " процесс, " + m + " нөөцийн төрөл"
     });
-    svg.style.width = "100%"; svg.style.minWidth = Math.min(W, 560) + "px"; svg.style.height = "auto"; svg.style.display = "block";
+    svg.style.width = "100%"; svg.style.minWidth = Math.min(W, 560) + "px"; svg.style.height = "auto"; svg.style.display = "block"; svg.style.maxWidth = Math.round(W * 1.45) + "px"; svg.style.margin = "0 auto";
 
     // ---- сумны толгой ----
     var defs = svgEl("defs", {}, svg);
@@ -142,7 +142,7 @@
 
     // Нөөц бүрийн нэгжийг хэн эзэлж байгаа вэ (дууссан процессын нэгж чөлөөтэй болсон)
     var held = [];     // held[j][i] = i процессын j нөөцөд барьж буй нэгж
-    var free = [];     // free[j]    = чөлөөтэй нэгж 😊 Work[j])
+    var free = [];     // free[j]    = чөлөөтэй нэгж (Work[j]-тэй тэнцүү)
     for (j = 0; j < m; j++) {
       held.push([]);
       var used = 0;
@@ -168,12 +168,13 @@
       var c = { x: (a.x + b.x) / 2 + (-uy) * sign * CFG.BEND, y: (a.y + b.y) / 2 + ux * sign * CFG.BEND };
       return { a: a, b: b, c: c, mid: { x: 0.25 * a.x + 0.5 * c.x + 0.25 * b.x, y: 0.25 * a.y + 0.5 * c.y + 0.25 * b.y } };
     }
-    function label(mid, str, bg, i2, j2) {
+    function label(mid, str, bg, i2, j2, hidden) {
       var w = 10 + 7 * String(str).length;
       var grp = svgEl("g", {}, gLabels);
+      if (hidden) { grp.style.opacity = "0"; grp.style.pointerEvents = "none"; grp.style.transition = "opacity .15s"; }
       svgEl("rect", { x: mid.x - w / 2, y: mid.y - 8, width: w, height: 16, rx: 8, fill: bg, stroke: "#fff", "stroke-width": 1.5 }, grp);
       svgText(grp, mid.x, mid.y + 4, str, { "text-anchor": "middle", "font-size": 11, "font-weight": 800, fill: "#fff" });
-      items.push({ el: grp, kind: "edge", p: i2, r: j2 });
+      items.push({ el: grp, kind: "edge", p: i2, r: j2, hidden: !!hidden });
     }
     // Need (тасархай) эхлээд, Allocation (бүдүүн) дээр нь
     for (i = 0; i < n; i++) {
@@ -186,9 +187,11 @@
             d: "M" + gn.a.x + "," + gn.a.y + " Q" + gn.c.x + "," + gn.c.y + " " + gn.b.x + "," + gn.b.y,
             fill: "none", stroke: C.need, "stroke-width": 1.6, "stroke-dasharray": "6 4", "marker-end": "url(#ah-need)"
           }, gEdges);
+          if (!showNeed) { pn.style.opacity = "0"; pn.style.pointerEvents = "none"; }
+          pn.style.transition = "opacity .15s";
           addTitle(pn, "Need: P" + i + " → R" + j + " (" + nd + " нэгж хүсч болзошгүй)");
-          items.push({ el: pn, kind: "edge", p: i, r: j });
-          label(gn.mid, String(nd), "#64748b", i, j);
+          items.push({ el: pn, kind: "edge", p: i, r: j, hidden: !showNeed });
+          label(gn.mid, String(nd), "#64748b", i, j, true);
         }
       }
     }
@@ -301,7 +304,10 @@
     }
     var pinned = null;
     function apply(sel) {
-      items.forEach(function (it) { it.el.style.opacity = (!sel || related(it, sel)) ? "" : "0.12"; });
+      items.forEach(function (it) {
+        var base = it.hidden ? "0" : "";                       // Need-ийн тоо хэвийн үед нуугдсан
+        it.el.style.opacity = !sel ? base : (related(it, sel) ? "1" : (it.hidden ? "0" : "0.12"));
+      });
     }
     items.forEach(function (it) {
       if (it.kind === "edge") return;
@@ -334,7 +340,8 @@
       } else if (N > 0) {
         t("Төлөв "); b("UNSAFE"); t(": зөвхөн " + N + " процесс дуусаж чадна, бусад нь чадахгүй. «▶ Эхлүүлэх» товчоор харна уу.");
       } else {
-        t("Төлөв "); b("UNSAFE"); t(": ямар ч процесс одоо дуусч чадахгүй (бүгдийн Need > Work).");
+        t("Төлөв "); b("UNSAFE"); t(": ямар ч процесс одоо дуусч чадахгүй. Бүгдийн Need нь Work " + vec(model.available) + "-ээс илүү нөөц шаардаж байна: ");
+        t(model.need.map(function (nd, i) { return "P" + i + " Need " + vec(nd); }).join("; ") + ".");
       }
       return;
     }
@@ -348,16 +355,33 @@
       else {
         var left = [];
         for (var i = 0; i < model.n; i++) if (model.order[i] === undefined) left.push("P" + i);
-        t("Үлдсэн " + left.join(", ") + "-ийн Need > Work тул дуусч чадахгүй → "); b("UNSAFE.");
+        t("Үлдсэн " + left.join(", ") + "-ийн Need ≤ Work биш тул дуусч чадахгүй → "); b("UNSAFE.");
       }
     }
+  }
+
+  /* Finish[i] (сурах бичгийн Safety algorithm): дууссан процесс true, бусад false */
+  function renderFinish(model, k, box) {
+    box.textContent = "";
+    var lab = htmlEl("span", null, "Finish:"); lab.style.cssText = "font-weight:700;color:#475569;margin-right:2px;";
+    box.appendChild(lab);
+    var fin = {};
+    for (var q = 0; q < k; q++) fin[model.steps[q].p] = true;
+    for (var i = 0; i < model.n; i++) {
+      var c = htmlEl("span", null, "P" + i + " = " + (fin[i] ? "true" : "false"));
+      c.style.cssText = "padding:2px 9px;border-radius:999px;font-size:12px;font-weight:700;border:1px solid " +
+        (fin[i] ? "#9bd9b3;background:#e8f8ee;color:#15803d" : "#e2e8f0;background:#f1f5f9;color:#64748b");
+      box.appendChild(c);
+    }
+    box.title = "Finish[i] = true бол Pi дууссан (Allocation-аа буцаасан). Safety algorithm: Need ≤ Work байх Finish[i] = false процесс хайна.";
   }
 
   /* ---------------------------------------------------------------
    * 6. Хурдны сонголт + нэг удаагийн CSS
    * ------------------------------------------------------------- */
   var SPEEDS = [[1600, "Удаан", "1.6"], [800, "Дунд", "0.8"], [400, "Хурдан", "0.4"]];
-  var speedMs = 800;                       // шинэ төлөв ачаалахад ч хадгалагдана
+  var showNeed = false;                      // Need (claim) сумыг үргэлж харуулах эсэх
+  var speedMs = 800;                       // шинэ өгөгдөл оруулахад ч хадгалагдана
   function speedText(ms) {
     for (var q = 0; q < SPEEDS.length; q++) if (SPEEDS[q][0] === ms) return SPEEDS[q][1] + " · " + SPEEDS[q][2] + " сек/алхам";
     return ms + " мс/алхам";
@@ -367,8 +391,8 @@
     if (document.getElementById("graph-style")) return;
     var st = htmlEl("style"); st.id = "graph-style";
     st.textContent =
-      "#graph .gnav{display:flex;gap:8px;align-items:center;justify-content:center;flex-wrap:wrap;margin:0 0 10px}" +
-      "#graph .gspeed{display:flex;align-items:center;justify-content:center;gap:10px;flex-wrap:wrap;margin:0 0 8px;padding:7px 10px;background:#f1f5f9;border-radius:10px}" +
+      "#graph .gnav{display:flex;gap:8px;align-items:center;justify-content:center;flex-wrap:wrap;margin:0 0 8px}" +
+      "#graph .gspeed{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:0 0 8px;padding:7px 10px;background:#f1f5f9;border-radius:10px}" +
       "#graph .gspeed .lbl{font-size:13px;font-weight:700;color:#475569}" +
       "#graph .seg{display:inline-flex;border:1.5px solid #cbd5e1;border-radius:9px;overflow:hidden;background:#fff}" +
       "#graph .seg button{border:0;border-radius:0;padding:6px 14px;font-size:13px;background:#fff;color:#12233f;border-right:1px solid #e2e8f0}" +
@@ -378,9 +402,12 @@
       "#graph .gval.flash{animation:gflash .7s ease}" +
       "@keyframes gflash{0%{background:#fde68a;transform:scale(1.15)}100%{background:#e8f0ff;transform:scale(1)}}" +
       "#graph .ghint{width:100%;text-align:center;font-size:12px;color:#64748b}#graph .ghint:empty{display:none}" +
-      "#graph .gbar{height:6px;background:#e2e8f0;border-radius:3px;overflow:hidden;margin:0 0 10px}" +
+      "#graph .gbar{flex:1;height:6px;background:#e2e8f0;border-radius:3px;overflow:hidden}" +
+      "#graph .gbarrow{display:flex;align-items:center;gap:10px;margin:0 0 10px}" +
+      "#graph .gtog{display:inline-flex;align-items:center;gap:6px;font-size:13px;font-weight:700;color:#475569;cursor:pointer;margin-left:auto}" +
+      "#graph .gtog input{width:16px;height:16px;cursor:pointer}" +
       "#graph .gbar i{display:block;height:100%;width:0;background:#2563eb;border-radius:3px}" +
-      "#graph .gpos{width:100%;text-align:center;font-size:12.5px;color:#64748b}" +
+      "#graph .gpos{white-space:nowrap;font-size:12.5px;color:#64748b}" +
       "#graph button:focus-visible,#graph:focus-visible{outline:3px solid #93c5fd;outline-offset:2px}" +
       "@media (prefers-reduced-motion:reduce){#graph .gval.flash{animation:none}#graph .gbar i{transition:none!important}}";
     document.head.appendChild(st);
@@ -417,6 +444,9 @@
       (model.safe ? "#9bd9b3" : "#f3a6a3") + ";background:" + (model.safe ? "#e8f8ee" : "#fdecec") + ";color:#12233f;";
     info.setAttribute("aria-live", "polite");
 
+    var finBox = htmlEl("div");
+    finBox.style.cssText = "display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin:0 0 10px;font-size:12.5px;";
+
     var holder = htmlEl("div");
 
     /* --- удирдлагын товчнууд --- */
@@ -428,7 +458,7 @@
 
     /* --- хурдны сонголт: идэвхтэй товч + одоогийн утга + тайлбар --- */
     var speedBox = htmlEl("div", "gspeed");
-    speedBox.appendChild(htmlEl("span", "lbl", "Тоглуулах хурд:"));
+    speedBox.appendChild(htmlEl("span", "lbl", "Хурд:"));
     var seg = htmlEl("div", "seg"); seg.setAttribute("role", "group"); seg.setAttribute("aria-label", "Тоглуулах хурд");
     var segBtns = SPEEDS.map(function (x) {
       var b = htmlEl("button", null, x[1]); b.type = "button";
@@ -438,18 +468,23 @@
     });
     var gval = htmlEl("span", "gval", "");
     var ghint = htmlEl("div", "ghint", "");
-    speedBox.appendChild(seg); speedBox.appendChild(gval); speedBox.appendChild(ghint);
+    var tog = htmlEl("label", "gtog"); var tgIn = htmlEl("input"); tgIn.type = "checkbox"; tgIn.checked = showNeed;
+    tog.title = "Тасархай саарал сум = процесс цаашид хүсч болзошгүй нөөц (Need). Анхдагчаар нуусан: процесс дээр хулгана аваачихад харагдана.";
+    tog.appendChild(tgIn); tog.appendChild(document.createTextNode("Need сумыг үргэлж харуулах"));
+    tgIn.onchange = function () { showNeed = tgIn.checked; show(k); };
+    speedBox.appendChild(seg); speedBox.appendChild(gval); speedBox.appendChild(tog); speedBox.appendChild(ghint);
 
     /* --- ахицын зурвас (хурд өөрчлөхөд зурвасын хөдөлгөөн ч өөрчлөгдөнө) --- */
     var bar = htmlEl("div", "gbar"), fill = htmlEl("i");
     bar.appendChild(fill);
     bar.setAttribute("role", "progressbar"); bar.setAttribute("aria-valuemin", "0"); bar.setAttribute("aria-valuemax", String(N));
     var pos = htmlEl("div", "gpos", "");
+    var barRow = htmlEl("div", "gbarrow"); barRow.appendChild(bar); barRow.appendChild(pos);
 
     var note = htmlEl("div", null,
       "Хүрээ доторх өнгөт цэг = тухайн процесст олгосон нэгж, цагаан цэг = чөлөөтэй нэгж. " +
       "Тоотой цагираг = Safe sequence-ийн дараалал. Цэнхэр цагираг = дараа нь дуусах процесс. " +
-      "Процесс/нөөц дээр хулгана аваачвал (эсвэл дарвал) зөвхөн холбоотой сумнууд тод гарна. " +
+      "Процессын дээрх «Need …» = дахин хэрэгтэй нөөц. Процесс/нөөц дээр хулгана аваачвал (эсвэл дарвал) холбоотой сумнууд тод гарч, тасархай Need сум ба тоо нь харагдана. " +
       "Гар: граф дээр дараад ← → (алхам), Зай (эхлүүлэх/зогсоох), Home / End.");
     note.style.cssText = "font-size:12px;color:#64748b;margin-top:10px;line-height:1.5;";
 
@@ -458,10 +493,12 @@
       gval.textContent = speedText(speedMs);
       if (flash) { gval.classList.remove("flash"); void gval.offsetWidth; gval.classList.add("flash"); }
     }
+    var hintTimer = null;
+    function hint(t) { ghint.textContent = t; clearTimeout(hintTimer); hintTimer = setTimeout(function () { ghint.textContent = ""; }, 3000); }
     function setSpeed(ms) {
       speedMs = ms; renderSpeed(true);
-      if (timer) { clearInterval(timer); timer = setInterval(tick, speedMs); ghint.textContent = "Хурд шууд солигдлоо."; }
-      else ghint.textContent = N ? "Дараагийн «▶ Эхлүүлэх» дээр энэ хурдаар тоглоно." : "";
+      if (timer) { clearInterval(timer); timer = setInterval(tick, speedMs); hint("Хурд шууд солигдлоо."); }
+      else if (N) hint("Дараагийн «▶ Эхлүүлэх» дээр энэ хурдаар тоглоно.");
     }
 
     function show(newK) {
@@ -470,6 +507,7 @@
       holder.textContent = "";
       holder.appendChild(buildSvg(model, k, C));
       describe(model, k, info);
+      renderFinish(model, k, finBox);
       bFirst.disabled = bPrev.disabled = (k === 0);
       bNext.disabled = bLast.disabled = (k >= N);
       pos.textContent = N ? ("Алхам " + k + " / " + N + " · " + k + " процесс дууссан") : "";
@@ -515,13 +553,13 @@
       e.preventDefault();
     };
 
-    if (N === 0) { nav.style.display = "none"; speedBox.style.display = "none"; bar.style.display = "none"; }
+    if (N === 0) { nav.style.display = "none"; speedBox.style.display = "none"; barRow.style.display = "none"; }
 
     container.appendChild(nav);
     container.appendChild(speedBox);
-    container.appendChild(bar);
-    container.appendChild(pos);
+    container.appendChild(barRow);
     container.appendChild(info);
+    container.appendChild(finBox);
     container.appendChild(holder);
     container.appendChild(note);
     renderSpeed(false);
@@ -529,4 +567,3 @@
     stop();
   };
 })();
-

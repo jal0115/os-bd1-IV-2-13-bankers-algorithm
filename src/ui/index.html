@@ -133,10 +133,18 @@
   .scard:hover { border-color:#93b4f5; }
   .scard.sel { transform:translateY(-2px); }
   @media (prefers-reduced-motion:reduce) { * { transition:none !important; animation:none !important; } }
-  .modesw { display:flex; align-items:center; gap:8px; padding:9px 12px; border:1.5px solid var(--line); border-radius:10px; margin-bottom:12px; cursor:pointer; background:var(--soft); } .modesw span { color:var(--muted); font-size:13px; }
+  .modesw { display:flex; align-items:center; gap:8px; padding:9px 12px; border:1.5px solid var(--line); border-radius:10px; margin-bottom:12px; cursor:pointer; background:var(--soft); } .modesw span { color:var(--muted); font-size:13px; flex:1 1 100%; margin-left:26px; } .modesw { flex-wrap:wrap; }
   .modewarn { background:var(--warn-bg); border:1.5px solid #ecc56a; color:var(--warn); border-radius:10px; padding:9px 12px; margin:-4px 0 12px; font-size:13px; }
   .dirty { margin-bottom:12px; padding:9px 12px; border-radius:10px; font-size:13px; background:var(--info-bg); border:1.5px solid #a9c3f5; color:var(--info); }
   .dirty.bad { background:var(--bad-bg); border-color:#f3a6a3; color:var(--bad); }
+  .en { font-weight:500; color:var(--muted); font-size:12.5px; margin-left:8px; }
+  .scard { min-width:0; padding:4px 7px; border-radius:12px; } .chain { gap:5px; } .arrow { font-size:13px; }
+  .row2 > section:nth-child(2) { position:sticky; top:12px; }
+  @media (max-width:1000px) { .row2 > section:nth-child(2) { position:static; } }
+  details.algo { margin-top:12px; border:1px solid var(--line); border-radius:10px; padding:8px 12px; background:var(--soft); font-size:13px; }
+  details.algo summary { cursor:pointer; font-weight:800; color:var(--navy); } details.algo ol { margin:8px 0 2px; padding-left:20px; } details.algo li { margin:3px 0; }
+  .msgextra { margin-top:8px; padding-top:8px; border-top:1px solid currentColor; border-top-color:rgba(0,0,0,.12); font-variant-numeric:tabular-nums; }
+  .msgextra button { margin-left:8px; padding:4px 10px; font-size:12.5px; }
   footer { text-align:right; color:var(--muted); font-size:12px; padding:0 0 24px; }
 </style>
 </head>
@@ -155,19 +163,20 @@
   </div>
 
   <details class="howto" open>
-    <summary>Яаж ашиглах вэ? (хаах бол энд дар)</summary>
+    <summary>Яаж ашиглах вэ? (хаах бол энд дарна уу)</summary>
+    <p style="margin:8px 0 0"><b>Banker's Algorithm гэж юу вэ?</b> Банкир зээл өгөхөөс өмнө «бүх хэрэглэгч эцэст нь зээлээ төлж чадах уу?» гэж шалгадагтай адил, үйлдлийн систем нөөц олгохын өмнө «олгосны дараа бүх процесс дуусч чадах уу?» гэж шалгана. Чадахгүй бол олгохгүй. Ингэж <b>deadlock</b>-оос сэргийлнэ.</p>
     <ol>
-      <li><b> Өгөгдөл:</b> «Бэлэн сценари» сонгоно (эсвэл хүснэгтийн тоог өөрөө бичнэ) → «▶ Шалгах».</li>
-      <li><b> Хүсэлт:</b> процесс сонгож, хэдийг хүсэхээ бичээд «Хүсэлт илгээх» дарна. Үр дүн: <b style="color:var(--ok)">ногоон = олгов</b>, <b style="color:var(--warn)">шар = хүлээнэ</b>, <b style="color:var(--bad)">улаан = татгалзав</b>.</li>
-      <li><b> Граф:</b> «▶ Эхлүүлэх» дарж процессууд нэг нэгээр дуусах дарааллыг харна (хурдыг «Удаан / Дунд / Хурдан»-аар солино). Яагаад аюулгүй/аюултай болсныг 4 хэсгээс шалгана.</li>
+      <li><b>Өгөгдөл өгнө (1-р хэсэг):</b> «Бэлэн сценари» сонгоно (эсвэл хүснэгтийн тоог өөрөө бичнэ) → «▶ Шалгах».</li>
+      <li><b>Нөөц хүснэ (2-р хэсэг):</b> процесс сонгож, хэдийг хүсэхээ бичээд «Хүсэлт илгээх» дарна. Үр дүн: <b style="color:var(--ok)">ногоон = олгосон</b>, <b style="color:var(--warn)">шар = хүлээлгэсэн</b>, <b style="color:var(--bad)">улаан = татгалзсан</b>.</li>
+      <li><b>Графыг харна (3-р хэсэг):</b> «▶ Эхлүүлэх» дарж процессууд нэг нэгээр дуусах дарааллыг харна (хурдыг «Удаан / Дунд / Хурдан»-аар солино). Яагаад аюулгүй/аюултай болсныг 4-р хэсгээс шалгана.</li>
     </ol>
   </details>
 
   <div class="grid">
     <section class="card">
-      <h2><span class="no">1</span>Өгөгдөл: нөөц хэрхэн хуваарилагдсан бэ</h2>
+      <h2><span class="no">1</span>Өгөгдөл: нөөц хэрхэн хуваарилагдсан бэ<span class="en">Available · Max · Allocation · Need</span></h2>
       <p class="hint">Хоёр арга бий: <b>А.</b> доороос бэлэн сценари сонгох, эсвэл <b>Б.</b> хүснэгтийн тоог өөрөө бичих. Дараа нь «▶ Шалгах» дарна.</p>
-      <div class="scen"><label for="preset">Бэлэн сценари:</label><select id="preset" title="Бэлэн туршилтын сценари"><option value="">— сонгоно уу —</option></select><button id="btnExample">Номын жишээ ачаалах</button></div>
+      <div class="scen"><label for="preset">Бэлэн сценари:</label><select id="preset" title="Бэлэн туршилтын сценари"><option value="">— сонгоно уу —</option></select><button id="btnExample">Номын жишээг оруулах</button></div>
       <div id="dirty" class="dirty" hidden></div>
       <div id="tables"></div>
       <div class="gloss"><span><b>Available</b> = одоо чөлөөтэй нөөц</span><span><b>Max</b> = процесс хамгийн ихдээ хэрэгтэй</span><span><b>Allocation</b> = процесс одоо барьж буй</span><span><b>Need</b> = Max − Allocation (автомат)</span></div>
@@ -181,47 +190,54 @@
     </section>
 
     <section class="card">
-      <h2><span class="no">2</span>Нөөц хүсэх</h2>
+      <h2><span class="no">2</span>Нөөц хүсэх<span class="en">Resource-Request algorithm</span></h2>
       <p class="hint">Процесс сонгож, хэдийг хүсэхээ бичнэ. Олгосны дараа систем аюулгүй хэвээр байвал олгоно, үгүй бол татгалзана.</p>
       <label class="modesw"><input type="checkbox" id="bankerOn" checked><b>Banker's Algorithm</b><span>(олгохын өмнө аюулгүй эсэхийг шалгана)</span></label>
       <div class="modewarn" id="modewarn" hidden>⚠ Banker унтраалттай: нөөц хүрэлцэж, Need-ээс хэтрэхгүй бол аюултай хүсэлт ч олгогдоно. Төлөв UNSAFE болж deadlock-д орох эрсдэлтэй.</div>
-      <div class="field"><label for="reqProc">Аль процесс хүсэх вэ?</label><select id="reqProc"></select></div>
+      <div class="field"><label for="reqProc">Аль процесс нөөц хүсэх вэ?</label><select id="reqProc"></select></div>
       <div class="procinfo" id="procinfo"></div>
-      <div class="field"><label>Хэдийг хүсэх / чөлөөлөх вэ</label><div class="vec" id="reqVec"></div></div>
+      <div class="field"><label>Хэдэн нэгж хүсэх / чөлөөлөх вэ</label><div class="vec" id="reqVec"></div></div>
       <div class="checks" id="checks"></div>
       <div class="btnrow" style="margin-top:4px">
         <button class="primary" id="btnRequest">✓ Хүсэлт илгээх</button>
-        <button id="btnRelease">↺ Нөөц буцаах (Release)</button>
+        <button id="btnRelease">↺ Нөөц чөлөөлөх (Release)</button>
       </div>
       <div id="msg" role="status" aria-live="polite"><span class="mt">Үр дүн</span>Хүсэлт илгээхэд үр дүн энд гарна.</div>
     </section>
 
     <div class="row2">
     <section class="card">
-      <h2><span class="no">3</span>Граф: процесс ба нөөцийн холбоо</h2>
-      <p class="hint">Дээд талын «▶ Эхлүүлэх» товчоор процессууд дуусах дарааллыг алхам алхмаар харна; «Тоглуулах хурд»-аар хурдыг солино. <b>Цэнхэр сум</b> = процесст олгосон нөөц, <b>саарал тасархай сум</b> = процесс цаашид хүсч болзошгүй нөөц (Need).</p>
+      <h2><span class="no">3</span>Граф: процесс ба нөөцийн холбоо<span class="en">Resource-Allocation Graph</span></h2>
+      <p class="hint"><b>Цэнхэр сум</b> = процесст олгосон нөөц (тоо = нэгж). «▶ Эхлүүлэх» дарвал процессууд дуусах дарааллаар нөөцөө буцаана. Процесс дээр хулгана аваачвал <b>тасархай сум</b> (Need = цаашид хэрэгтэй болж магадгүй) гарна.</p>
       <div id="graph"></div>
       <div class="legend">
         <span><i class="alloc"></i>Allocation (нөөц → процесс)</span>
-        <span><i class="need"></i>Need (процесс → нөөц)</span>
+        <span><i class="need"></i>Need (процесс → нөөц): процесс дээр хулгана аваачихад гарна</span>
       </div>
     </section>
         <section class="card">
-      <h2><span class="no">4</span>Аюулгүй дараалал</h2>
+      <h2><span class="no">4</span>Аюулгүй дараалал<span class="en">Safe sequence</span></h2>
       <p class="hint">Процессуудыг ямар дарааллаар дуусгахад нөөц хүрэлцэх вэ. Мөр дээр дарвал граф тэр алхам руу очно.</p>
       <div id="seq"></div>
       <div class="tablewrap" id="steps"></div>
+      <details class="algo" open><summary>Сурах бичгийн Safety algorithm (4 алхам)</summary>
+        <ol>
+          <li><b>Work = Available</b>, бүх процессын <b>Finish[i] = false</b>.</li>
+          <li><b>Finish[i] = false</b> ба <b>Need<sub>i</sub> ≤ Work</b> байх процесс <b>i</b> ол. Олдохгүй бол 4-рүү.</li>
+          <li><b>Work = Work + Allocation<sub>i</sub></b>, <b>Finish[i] = true</b>. 2-руу буц.</li>
+          <li>Бүх <b>Finish[i] = true</b> бол <b>SAFE</b>, үгүй бол <b>UNSAFE</b>.</li>
+        </ol></details>
     </section>
 
     </div>
     <section class="card" style="grid-column:1/-1">
       <div class="loghead">
-        <div><h2><span class="no">5</span>Түүх (илгээсэн хүсэлтүүд)</h2><p class="hint" style="margin:0 0 12px">Хүсэлт бүр дугаартай мөр болж, хамгийн сүүлийнх нь дээр гарна. Request / Release бүрийн цаг, үр дүн, шалтгаан. Тоолуур нь зөвхөн Request-ийг тоолно.</p></div>
+        <div><h2><span class="no">5</span>Түүх (илгээсэн хүсэлтүүд)<span class="en">Request log</span></h2><p class="hint" style="margin:0 0 12px">Хүсэлт бүр дугаартай мөр болж, хамгийн сүүлийнх нь дээр гарна. Request / Release бүрийн цаг, үр дүн, шалтгаан. Тоолуур нь зөвхөн Request-ийг тоолно.</p></div>
         <button id="btnClearLog" class="danger">Түүх цэвэрлэх</button>
       </div>
       <div class="stats">
         <div class="stat g"><b id="cG">0</b><span>Олгосон</span></div>
-        <div class="stat w"><b id="cW">0</b><span>Хүлээсэн</span></div>
+        <div class="stat w"><b id="cW">0</b><span>Хүлээлгэсэн</span></div>
         <div class="stat d"><b id="cD">0</b><span>Татгалзсан (unsafe)</span></div>
         <div class="stat e"><b id="cE">0</b><span>Алдаа</span></div>
       </div>
@@ -268,7 +284,7 @@ function numInput(value, onChange) {
   i.addEventListener("input", () => { i.classList.remove("invalid"); onChange(i); markDirty(); }); return i;
 }
 let applying = false;
-function markDirty() { const d = $("dirty"); d.hidden = false; d.className = "dirty"; d.textContent = "✎ Өөрчлөлт хараахан хэрэглэгдээгүй. Дээд талын төлөв (SAFE/UNSAFE), граф, түүх хуучин өгөгдлөөр байна. «▶ Шалгах» дарна уу."; }
+function markDirty() { const d = $("dirty"); d.hidden = false; d.className = "dirty"; d.textContent = "✎ Өөрчлөлт хараахан шалгагдаагүй байна. Дээд талын төлөв (SAFE/UNSAFE), граф, түүх хуучин өгөгдлөөр байна. «▶ Шалгах» дарна уу."; }
 function rlabel(j) { const s = el("span"); const d = el("span", "dot"); d.style.background = C.resource[j % C.resource.length]; s.appendChild(d); s.appendChild(document.createTextNode("R" + j)); return s; }
 function td(child, cls) { const t = el("td", cls || ""); if (child) t.appendChild(child); return t; }
 
@@ -375,10 +391,10 @@ function pushLog(kind, proc, v, status, reason) {
 function renderLog() {
   $("cG").textContent = stats.granted; $("cW").textContent = stats.wait; $("cD").textContent = stats.unsafe; $("cE").textContent = stats.error;
   const box = $("logbox"); box.textContent = "";
-  if (!logRows.length) { box.appendChild(el("div", "logempty", "Одоогоор хүсэлт илгээгдээгүй байна. Дээрх 2 хэсэгт хүсэлт илгээвэл энд мөр нэмэгдэнэ.")); return; }
+  if (!logRows.length) { box.appendChild(el("div", "logempty", "Одоогоор хүсэлт илгээгдээгүй байна. Дээрх 2-р хэсэгт хүсэлт илгээвэл энд мөр нэмэгдэнэ.")); return; }
   const t = el("table", "log"), hr = el("tr");
-  ["№", "Цаг", "Процесс", "Үйлдэл", "Хэдийг", "Үр дүн", "Тайлбар (яагаад)"].forEach((x) => hr.appendChild(el("th", null, x))); t.appendChild(hr);
-  const LAB = { granted: "Олгосон", released: "Чөлөөлсөн", wait: "Хүлээнэ", unsafe: "Татгалзсан", error: "Алдаа" };
+  ["№", "Цаг", "Процесс", "Үйлдэл", "Хэдэн нэгж", "Үр дүн", "Тайлбар (яагаад)"].forEach((x) => hr.appendChild(el("th", null, x))); t.appendChild(hr);
+  const LAB = { granted: "Олгосон", released: "Чөлөөлсөн", wait: "Хүлээлгэсэн", unsafe: "Татгалзсан", error: "Алдаа" };
   logRows.slice().reverse().forEach((r) => {
     const tr = el("tr"); tr.appendChild(el("td", null, String(r.n))); tr.appendChild(el("td", null, r.t));
     tr.appendChild(isNaN(r.proc) ? el("td", null, "–") : td(pill(r.proc)));
@@ -390,6 +406,14 @@ function renderLog() {
 }
 $("btnClearLog").onclick = () => { logRows = []; logSeq = 0; stats.granted = stats.wait = stats.unsafe = stats.error = 0; renderLog(); };
 
+/* ---------- Үр дүнгийн доор: Available өөрчлөлт + граф руу очих ---------- */
+function addMsgExtra(a, b) {
+  const x = el("div", "msgextra"); x.appendChild(document.createTextNode("Available: " + vec(a) + " → " + vec(b) + " "));
+  const go = el("button", null, "↓ Граф дээр харах"); go.onclick = () => $("graph").scrollIntoView({ behavior: "smooth", block: "center" });
+  x.appendChild(go); $("msg").appendChild(x);
+}
+function clearReq() { document.querySelectorAll("#reqVec input").forEach((i) => { i.value = "0"; }); livePreview(); }
+
 /* ---------- Request / Release ---------- */
 async function doAction(kind) {
   const proc = Number($("reqProc").value), v = readVec();
@@ -399,6 +423,7 @@ async function doAction(kind) {
     const data = await api(isReq ? "/api/request" : "/api/release", "POST", isReq ? { process: proc, request: v } : { process: proc, release: v });
     const r = data.request_result || { status: "error", message: "Серверээс үр дүн ирсэнгүй." };
     handleResult(data); pushLog(kind, proc, v, r.status, r.message);
+    if (before && (r.status === "granted" || r.status === "released")) addMsgExtra(before.available, data.state.available);
     if (isReq) renderChecks(before, proc, v, r.status);
   } catch (e) {
     fail(e); pushLog(kind, proc, v, "error", e.message);
@@ -420,24 +445,24 @@ function bigScenario(n, m, seed) {
 const PRESETS = {
   book: { name: "Номын жишээ (5 процесс, 3 нөөц)", data: { available: [3, 3, 2],
     max: [[7, 5, 3], [3, 2, 2], [9, 0, 2], [2, 2, 2], [4, 3, 3]], allocation: [[0, 1, 0], [2, 0, 0], [3, 0, 2], [2, 1, 1], [0, 0, 2]] },
-    note: "Туршиж үз: P1 (1,0,2) → олгоно; дараа нь P4 (3,3,0) → хүлээнэ; P0 (0,2,0) → UNSAFE тул татгалзана." },
+    note: "Туршиж үзнэ үү: P1 (1,0,2) → олгоно; дараа нь P4 (3,3,0) → хүлээлгэнэ; P0 (0,2,0) → UNSAFE тул татгалзана." },
   unsafe: { name: "Unsafe эхний төлөв (Release хийвэл safe)", data: { available: [1, 1],
     max: [[4, 3], [3, 3], [5, 2]], allocation: [[2, 1], [1, 2], [2, 0]] },
-    note: "Эхнээсээ UNSAFE. Туршиж үз: P0 дээр Release (2,1) хийвэл төлөв SAFE болно." },
+    note: "Эхнээсээ UNSAFE. Туршиж үзнэ үү: P0 дээр Release (2,1) хийвэл төлөв SAFE болно." },
   big: { name: "Том туршилт 10×5", data: bigScenario(10, 5, 2026), note: "10 процесс, 5 нөөц. Төлөв SAFE." }
 };
 PRESETS.nobanker = { name: "Banker-гүй: Deadlock-д хүрэх", enforce: false, data: PRESETS.book.data,
-  note: "Banker унтраалттай. Туршиж үз: P1 (1,0,2), дараа нь P0 (0,2,0) хүс. Banker-тэй бол татгалзах байсан хүсэлт олгогдож, төлөв UNSAFE болно." };
+  note: "Banker унтраалттай. Туршиж үзнэ үү: P1 (1,0,2), дараа нь P0 (0,2,0) хүс. Banker-тэй бол татгалзах байсан хүсэлт олгогдож, төлөв UNSAFE болно." };
 Object.keys(PRESETS).forEach((k) => { const o = el("option", null, PRESETS[k].name); o.value = k; $("preset").appendChild(o); });
 $("preset").onchange = async () => {
   const k = $("preset").value; if (!k) return;
-  try { let data = await api("/api/load", "POST", PRESETS[k].data); const want = PRESETS[k].enforce !== false; if ((data.state.enforce !== false) !== want) data = await api("/api/mode", "POST", { enforce: want }); applyState(data.state); showMsg("loaded", "«" + PRESETS[k].name + "» ачааллаа. " + PRESETS[k].note); }
+  try { let data = await api("/api/load", "POST", PRESETS[k].data); const want = PRESETS[k].enforce !== false; if ((data.state.enforce !== false) !== want) data = await api("/api/mode", "POST", { enforce: want }); applyState(data.state); clearReq(); showMsg("loaded", "«" + PRESETS[k].name + "» сценарийг сонгож, төлвийг шалгалаа. " + PRESETS[k].note); }
   catch (e) { fail(e); }
 };
 
 /* ---------- мэдэгдэл ---------- */
-const TITLES = { granted: "✔ Хүсэлтийг олгосон", released: "✔ Чөлөөлсөн", wait: "⏳ Хүлээнэ (нөөц хүрэлцэхгүй)",
-                 unsafe: "✖ Татгалзсан: олговол UNSAFE болно", error: "⚠ Алдаа", loaded: "ℹ Ачааллаа", reset: "ℹ Буцаалаа", mode: "ℹ Горим солигдлоо" };
+const TITLES = { granted: "✔ Хүсэлтийг олгосон", released: "✔ Чөлөөлсөн", wait: "⏳ Хүлээлгэсэн: нөөц хүрэлцэхгүй",
+                 unsafe: "✖ Татгалзсан: олговол UNSAFE болно", error: "⚠ Алдаа", loaded: "ℹ Өгөгдөл оруулсан", reset: "ℹ Reset", mode: "ℹ Горим солигдлоо" };
 function showMsg(status, message) {
   const m = $("msg"); m.className = status; m.textContent = "";
   m.appendChild(el("span", "mt", TITLES[status] || status)); m.appendChild(document.createTextNode(message));
@@ -461,8 +486,8 @@ function renderSafety() {
     state.steps.forEach((s, k) => {
       if (k) chain.appendChild(el("span", "arrow", "→"));
       const idx = Number(s.process.slice(1)); const c = el("div", "scard" + (k === graphK - 1 ? " sel" : "")); c.dataset.k = k;
-      const top = el("div"); top.appendChild(pill(idx)); top.appendChild(el("span", "chk", "✓")); c.appendChild(top);
-      c.appendChild(el("div", "wv", "Work " + vec(s.work_after))); c.onclick = () => goStep(k);
+      const top = el("div"); top.appendChild(pill(idx)); c.appendChild(top);
+      c.title = "P" + idx + " дууссаны дараах Work " + vec(s.work_after); c.onclick = () => goStep(k);
       chain.appendChild(c);
     });
     seq.appendChild(chain);
@@ -470,7 +495,7 @@ function renderSafety() {
     const done = state.steps.map((s) => s.process); const stuck = [];
     for (let i = 0; i < state.n; i++) if (!done.includes("P" + i)) stuck.push(i);
     const b = el("div", "unsafebox"); b.appendChild(el("b", null, "UNSAFE: Safe sequence байхгүй"));
-    b.appendChild(document.createTextNode("Дараах процессууд дуусч чадахгүй (Need нь Work-оос их): "));
+    b.appendChild(document.createTextNode("Дараах процессууд дуусч чадахгүй (Need ≤ Work биш: нөөц хүрэлцэхгүй): "));
     b.appendChild(document.createElement("br")); stuck.forEach((i) => { const p = pill(i); p.style.margin = "4px 6px 0 0"; b.appendChild(p); });
     if (state.enforce === false) { const w = el("div"); w.style.marginTop = "8px"; w.textContent = "Banker унтраалттай үед үлдсэн процессууд Max хүртэл хүсвэл бүгд хүлээж гацна: DEADLOCK."; b.appendChild(w); }
     seq.appendChild(b);
@@ -512,15 +537,15 @@ $("btnApply").onclick = async () => {
   try {
     const body = { available: draft.available.map(toVal), max: draft.max.map((r) => r.map(toVal)), allocation: draft.allocation.map((r) => r.map(toVal)) };
     const data = await api("/api/load", "POST", body);
-    showMsg("loaded", "Өгөгдлийг хэрэглэж, safety шалгалтыг ажиллууллаа."); applyState(data.state);
+    showMsg("loaded", "Өгөгдлийг хүлээн авч, safety шалгалтыг ажиллууллаа."); applyState(data.state); clearReq();
   } catch (e) {
     showMsg("error", e.message);
-    const dd = $("dirty"); dd.hidden = false; dd.className = "dirty bad"; dd.textContent = "✖ Өгөгдөл буруу тул хэрэглэгдсэнгүй. Дээд талын төлөв нь өмнөх зөв өгөгдлийнх хэвээр байна.";
+    const dd = $("dirty"); dd.hidden = false; dd.className = "dirty bad"; dd.textContent = "✖ Өгөгдөл буруу тул хүлээн авагдсангүй. Дээд талын төлөв нь өмнөх зөв өгөгдлийнх хэвээр байна.";
     document.querySelectorAll("#tables input").forEach((i) => { if (!/^\d+$/.test(i.value.trim())) i.classList.add("invalid"); });
   }
 };
-$("btnExample").onclick = () => { $("preset").value = "book"; api("/api/example", "POST", {}).then(handleResult).catch(fail); };
-$("btnReset").onclick = () => { $("preset").value = ""; api("/api/reset", "POST", {}).then(handleResult).catch(fail); };
+$("btnExample").onclick = () => { $("preset").value = "book"; api("/api/example", "POST", {}).then((d) => { handleResult(d); clearReq(); }).catch(fail); };
+$("btnReset").onclick = () => { $("preset").value = ""; api("/api/reset", "POST", {}).then((d) => { handleResult(d); clearReq(); }).catch(fail); };
 $("bankerOn").onchange = () => { const box = $("bankerOn"); api("/api/mode", "POST", { enforce: box.checked }).then(handleResult).catch((e) => { box.checked = !box.checked; fail(e); }); };
 $("btnRequest").onclick = () => doAction("request");
 $("btnRelease").onclick = () => doAction("release");
@@ -534,4 +559,3 @@ api("/api/state").then(applyState).catch(fail);
 </script>
 </body>
 </html>
-

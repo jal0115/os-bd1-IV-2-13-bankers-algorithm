@@ -33,7 +33,7 @@ def parse_int(text, what):
     try:
         return int(text)
     except ValueError:
-        raise CliError(f"{what}: бүхэл тоо байх ёстой (олдсон: {text!r})")
+        raise CliError(f"{what}: бүхэл тоо байх ёстой (оруулсан утга: {text!r})")
 
 
 def load_matrix(path, m, name):
@@ -53,7 +53,7 @@ def load_matrix(path, m, name):
         row = [parse_int(p, f"{name}, {lineno}-р мөр") for p in parts]
         if len(row) != m:
             raise CliError(f"{name}, {lineno}-р мөр: {m} утга байх ёстой, "
-                           f"{len(row)} олдлоо")
+                           f"{len(row)} байна")
         if any(x < 0 for x in row):
             raise CliError(f"{name}, {lineno}-р мөр: сөрөг тоо байж болохгүй")
         rows.append(row)
@@ -137,7 +137,7 @@ def execute(b, line):
         i, vec = nums[0], nums[1:]
         status, msg = (b.request(i, vec) if cmd == "RQ" else b.release(i, vec))
         return f"{status}: {msg}"
-    return f"алдаа: мэдэхгүй команд {parts[0]!r} (RQ, RL, *, exit)"
+    return f"алдаа: танигдаагүй команд {parts[0]!r} (RQ, RL, *, exit)"
 
 
 def parse_args(argv):
