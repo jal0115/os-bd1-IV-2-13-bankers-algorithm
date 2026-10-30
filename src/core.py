@@ -62,6 +62,7 @@ class Banker:
                     raise BankerError(
                         f"allocation[P{i}][R{j}]={self.allocation[i][j]} нь "
                         f"maximum={self.maximum[i][j]}-аас их байна")
+        self.enforce = True   # False бол request() safety шалгахгүй (Banker унтраалттай горим)
         self._initial = (list(self.available),
                          [r[:] for r in self.maximum],
                          [r[:] for r in self.allocation])
@@ -140,6 +141,8 @@ class Banker:
         for j in range(self.m):
             self.available[j] -= req[j]
             self.allocation[i][j] += req[j]
+        if not self.enforce:
+            return GRANTED, f"P{i}-д олголоо (Banker унтраалттай: safety шалгаагүй)"
         safe, _, _ = self.is_safe()
         if safe:
             return GRANTED, f"P{i}-д олголоо; төлөв safe хэвээр"
