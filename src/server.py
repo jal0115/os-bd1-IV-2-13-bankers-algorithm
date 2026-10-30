@@ -10,6 +10,7 @@ API (JSON). Бүх хариу UTF-8.
   POST /api/release    -> {process, release}
   POST /api/reset      -> анх ачаалсан төлөвт буцаана
   POST /api/example    -> номын 8.6.3 жишээг ачаална
+  POST /api/mode       -> {enforce: true|false} Banker's Algorithm-ийн safety шалгалтыг асаах/унтраах
 
 request/release/reset/example -> 200 {"request_result": {status, message}, "state": {...}}
 (wait/unsafe/error статус ч HTTP 200; зөвхөн хэрэглэгчийн оролтын формат буруу
@@ -61,9 +62,12 @@ class App:
     def __init__(self):
         self.lock = threading.Lock()
         self.banker = _example_banker()
+        self.enforce = True
 
     def state(self):
-        return self.banker.to_json()
+        d = self.banker.to_json()
+        d["enforce"] = self.enforce
+        return d
 
     def _wrap(self, status, message):
         return {"request_result": {"status": status, "message": message},
@@ -80,15 +84,26 @@ class App:
                                  data.get("allocation"))
         except BankerError as e:
             raise BadRequest(str(e))
+        self.banker.enforce = self.enforce
         return {"state": self.state()}
 
     def example(self):
         self.banker = _example_banker()
+        self.banker.enforce = self.enforce
         return self._wrap("loaded", "Номын 8.6.3 жишээг ачааллаа")
 
     def reset(self):
         self.banker.reset()
         return self._wrap("reset", "Анх ачаалсан төлөвт буцлаа")
+
+    def mode(self, data):
+        if not isinstance(data, dict) or not isinstance(data.get("enforce"), bool):
+            raise BadRequest("'enforce' талбар (true/false) хэрэгтэй")
+        self.enforce = data["enforce"]
+        self.banker.enforce = self.enforce
+        msg = ("Banker's Algorithm идэвхтэй: аюултай хүсэлтийг татгалзана" if self.enforce
+               else "Banker's Algorithm унтраалттай: аюултай хүсэлт ч олгогдоно (deadlock-ийн эрсдэл)")
+        return self._wrap("mode", msg)
 
     def request(self, data):
         if not isinstance(data, dict) or "process" not in data or "request" not in data:
@@ -168,6 +183,7 @@ class Handler(BaseHTTPRequestHandler):
             "/api/release": app.release,
             "/api/reset": lambda _data: app.reset(),
             "/api/example": lambda _data: app.example(),
+            "/api/mode": app.mode,
         }
         fn = routes.get(path)
         if fn is None:

@@ -119,6 +119,28 @@
   .ck.ok .mk { color:var(--ok); } .ck.bad .mk { color:var(--bad); } .ck.skip, .ck.pend { color:var(--muted); }
   .ck.bad { color:var(--bad); }
   .stepnav select { padding:6px 8px; min-width:0; }
+  .simbar { display:flex; gap:8px; align-items:center; flex-wrap:wrap; padding:10px 12px; background:var(--soft); border-radius:12px; margin-bottom:14px; }
+  .simbar input[type=range] { flex:1; min-width:140px; accent-color:var(--blue); }
+  .simbar .pos { font-weight:800; font-variant-numeric:tabular-nums; min-width:92px; text-align:center; }
+  .simbar label { font-size:13px; color:var(--muted); display:flex; align-items:center; gap:6px; } .simbar select { padding:6px 8px; min-width:0; }
+  .simgrid { display:grid; gap:16px; grid-template-columns:minmax(0,1.5fr) minmax(0,1fr); align-items:start; }
+  @media (max-width:1000px) { .simgrid { grid-template-columns:minmax(0,1fr); } }
+  .workbox, .pseudo, .explainbox { border:1px solid var(--line); border-radius:12px; background:#fff; padding:10px 12px; margin-bottom:10px; }
+  .wt, .pt { font-size:12.5px; font-weight:800; color:var(--muted); margin-bottom:8px; text-transform:uppercase; letter-spacing:.3px; }
+  .wrow { display:flex; gap:10px; flex-wrap:wrap; } .wchip { display:flex; align-items:center; gap:8px; padding:8px 12px; border-radius:10px; background:var(--ok-bg); border:1.5px solid #9bd9b3; font-weight:700; }
+  .wchip b { font-size:20px; color:var(--ok); font-variant-numeric:tabular-nums; } .wsub { margin-top:8px; font-size:13px; color:var(--muted); }
+  .pseudo { background:#0f1f3d; border-color:#0f1f3d; } .pseudo .pt { color:#9db2d6; }
+  .pl { display:flex; gap:10px; padding:4px 8px; border-radius:8px; color:#cbd7ee; font-size:12.5px; } .pl .ln { color:#6f86b0; width:1.2em; flex:none; text-align:right; }
+  .pl.on { background:var(--blue); color:#fff; font-weight:700; } .pl.on .ln { color:#cfe0ff; }
+  .explainbox { margin:0; border-left:5px solid var(--blue); } .et { font-size:16px; font-weight:800; margin-bottom:4px; color:var(--navy); } .eb { color:var(--text); margin-bottom:8px; font-size:13.5px; }
+  .fits { display:flex; flex-direction:column; gap:4px; } .fit { display:flex; align-items:center; gap:10px; font-size:13.5px; font-variant-numeric:tabular-nums; } .fit .mk { font-weight:800; width:1.2em; text-align:center; }
+  .fit.ok { color:var(--ok); } .fit.bad { color:var(--bad); }
+  .efin { margin-top:12px; padding:10px 12px; border-radius:10px; font-weight:700; } .efin.ok { background:var(--ok-bg); color:var(--ok); } .efin.bad { background:var(--bad-bg); color:var(--bad); }
+  details.seqdet { margin-top:14px; } details.seqdet summary { cursor:pointer; font-weight:800; color:var(--muted); margin-bottom:8px; }
+  .modesw { display:flex; align-items:center; gap:8px; padding:9px 12px; border:1.5px solid var(--line); border-radius:10px; margin-bottom:12px; cursor:pointer; background:var(--soft); } .modesw span { color:var(--muted); font-size:13px; }
+  .modewarn { background:var(--warn-bg); border:1.5px solid #ecc56a; color:var(--warn); border-radius:10px; padding:9px 12px; margin:-4px 0 12px; font-size:13px; }
+  .dirty { margin-bottom:12px; padding:9px 12px; border-radius:10px; font-size:13px; background:var(--info-bg); border:1.5px solid #a9c3f5; color:var(--info); }
+  .dirty.bad { background:var(--bad-bg); border-color:#f3a6a3; color:var(--bad); }
   footer { text-align:right; color:var(--muted); font-size:12px; padding:0 0 24px; }
 </style>
 </head>
@@ -140,6 +162,7 @@
     <section class="card">
       <h2>Resource Allocation</h2>
       <p class="hint">Need = Max − Allocation. Тоонуудыг засаад «Run safety check» дарна.</p>
+      <div id="dirty" class="dirty" hidden></div>
       <div id="tables"></div>
       <div class="btnrow">
         <select id="preset" title="Бэлэн туршилтын сценари"><option value="">Сценари сонгох…</option></select>
@@ -155,6 +178,8 @@
     <section class="card">
       <h2>Request resources</h2>
       <p class="hint">Request нь аюулгүй бол бодитоор олгогдоно, аюултай бол татгалзаж буцаана (rollback).</p>
+      <label class="modesw"><input type="checkbox" id="bankerOn" checked><b>Banker's Algorithm</b><span>(safety шалгалт идэвхтэй)</span></label>
+      <div class="modewarn" id="modewarn" hidden>⚠ Banker унтраалттай: нөөц хүрэлцэж, Need-ээс хэтрэхгүй бол аюултай хүсэлт ч олгогдоно. Төлөв UNSAFE болж deadlock-д орох эрсдэлтэй.</div>
       <div class="field"><label for="reqProc">Process</label><select id="reqProc"></select></div>
       <div class="procinfo" id="procinfo"></div>
       <div class="field"><label>Хэдийг хүсэх / чөлөөлөх вэ</label><div class="vec" id="reqVec"></div></div>
@@ -166,21 +191,20 @@
       <div id="msg" role="status" aria-live="polite"><span class="mt">Үр дүн</span>Хүсэлт илгээхэд үр дүн энд гарна.</div>
     </section>
 
-    <section class="card">
-      <h2>Safety analysis</h2>
-      <p class="hint">Процессыг дуусгаж болох дараалал ба алхам бүрийн Work вектор.</p>
-      <div id="seq"></div>
-      <div class="tablewrap" id="steps"></div>
-    </section>
-
-    <section class="card">
-      <h2>Resource graph</h2>
-      <p class="hint">Процесс ба нөөцийн холбоо.</p>
-      <div id="graph"></div>
-      <div class="legend">
-        <span><i class="alloc"></i>Allocation (нөөц → процесс)</span>
-        <span><i class="need"></i>Need (процесс → нөөц)</span>
+    <section class="card" style="grid-column:1/-1">
+      <h2>Safety simulation</h2>
+      <p class="hint">Алгоритмыг алхам алхмаар ажиллуулна: граф, Work вектор, псевдокод, тайлбар бүгд нэг алхамтай хамт шилжинэ.</p>
+      <div class="simbar">
+        <button id="sFirst">⏮ Эхлэл</button><button id="sPrev">◀ Өмнөх</button><button id="sPlay" class="primary">▶ Play</button><button id="sNext">Дараах ▶</button><button id="sLast">⏭ Төгсгөл</button>
+        <input type="range" id="sRange" min="0" max="0" value="0" aria-label="Алхам"><span class="pos" id="sPos"></span>
+        <label>Хурд <select id="sSpeed"><option value="1600">0.5×</option><option value="800" selected>1×</option><option value="400">2×</option><option value="200">4×</option></select></label>
       </div>
+      <div class="simgrid">
+        <div><div id="graph"></div>
+          <div class="legend"><span><i class="alloc"></i>Allocation (нөөц → процесс)</span><span><i class="need"></i>Need (процесс → нөөц)</span></div></div>
+        <div><div class="workbox" id="work"></div><div class="pseudo" id="pseudo"></div><div class="explainbox" id="explain"></div></div>
+      </div>
+      <details class="seqdet"><summary>Safe sequence ба алхмын хүснэгт</summary><div id="seq"></div><div class="tablewrap" id="steps"></div></details>
     </section>
     <section class="card" style="grid-column:1/-1">
       <div class="loghead">
@@ -213,7 +237,6 @@ window.BANKER_COLORS = {
 const C = window.BANKER_COLORS;
 let draft = { available: [], max: [], allocation: [] };
 let lastState = null;
-let selStep = 0;
 
 /* ---------- сервер ---------- */
 async function api(path, method, body) {
@@ -234,13 +257,16 @@ function el(tag, cls, text) { const e = document.createElement(tag); if (cls) e.
 function pill(i) { const s = el("span", "pill", "P" + i); const k = i % C.process.length; s.style.background = C.process[k]; s.style.color = C.processText[k]; return s; }
 function numInput(value, onChange) {
   const i = el("input"); i.type = "text"; i.value = value; i.inputMode = "numeric";
-  i.addEventListener("input", () => { i.classList.remove("invalid"); onChange(i); }); return i;
+  i.addEventListener("input", () => { i.classList.remove("invalid"); onChange(i); markDirty(); }); return i;
 }
+let applying = false;
+function markDirty() { const d = $("dirty"); d.hidden = false; d.className = "dirty"; d.textContent = "✎ Өөрчлөлт хараахан хэрэглэгдээгүй. Дээд талын SAFE/UNSAFE ба граф хуучин төлөвийг харуулж байна. «Run safety check» дарна уу."; }
 function rlabel(j) { const s = el("span"); const d = el("span", "dot"); d.style.background = C.resource[j % C.resource.length]; s.appendChild(d); s.appendChild(document.createTextNode("R" + j)); return s; }
 function td(child, cls) { const t = el("td", cls || ""); if (child) t.appendChild(child); return t; }
 
 /* ---------- хүснэгт ---------- */
 function renderTables() {
+  if (!applying) markDirty();
   const n = draft.max.length, m = draft.available.length;
   const root = $("tables"); root.textContent = "";
 
@@ -269,11 +295,13 @@ function renderTables() {
   const wrap = el("div", "tablewrap"); wrap.appendChild(t); root.appendChild(wrap);
 
   function updateNeed() {
+    let neg = false;
     for (let i = 0; i < n; i++) for (let j = 0; j < m; j++) {
       const a = Number(draft.max[i][j]), b = Number(draft.allocation[i][j]), c = needCells[i][j];
       if (String(draft.max[i][j]).trim() === "" || String(draft.allocation[i][j]).trim() === "" || isNaN(a) || isNaN(b)) { c.textContent = "?"; c.classList.remove("neg"); }
-      else { c.textContent = String(a - b); c.classList.toggle("neg", a - b < 0); }
+      else { c.textContent = String(a - b); c.classList.toggle("neg", a - b < 0); if (a - b < 0) neg = true; }
     }
+    $("btnApply").disabled = neg; $("btnApply").title = neg ? "Allocation нь Max-аас их байна (Need сөрөг). Эхлээд засна уу." : "";
   }
   updateNeed();
   renderRequestForm();
@@ -316,9 +344,10 @@ function renderChecks(state, proc, v, status) {
   if (v.length !== state.m || v.some((x) => typeof x !== "number" || !Number.isInteger(x) || x < 0)) { row("bad", "✖", "Хүсэлтийн вектор буруу (сөрөг биш бүхэл тоо байх ёстой)."); return; }
   const need = state.need[proc], av = state.available;
   const c1 = v.every((x, j) => x <= need[j]), c2 = v.every((x, j) => x <= av[j]);
-  row(c1 ? "ok" : "bad", c1 ? "✔" : "✖", "1. Request " + vec(v) + (c1 ? " ≤ " : " ≰ ") + "Need " + vec(need) + (c1 ? "" : "  (Max-аас хэтэрсэн)"));
-  row(c2 ? "ok" : "bad", c2 ? "✔" : "✖", "2. Request " + vec(v) + (c2 ? " ≤ " : " ≰ ") + "Available " + vec(av) + (c2 ? "" : "  (одоо хүрэхгүй)"));
+  row(c1 ? "ok" : "bad", c1 ? "✔" : "✖", "1. Request " + vec(v) + " ≤ Need " + vec(need) + (c1 ? "" : " биш (Max-аас хэтэрсэн)"));
+  row(c2 ? "ok" : "bad", c2 ? "✔" : "✖", "2. Request " + vec(v) + " ≤ Available " + vec(av) + (c2 ? "" : " биш (одоо хүрэхгүй)"));
   if (!c1 || !c2) row("skip", "–", "3. Safety шалгалт хийгдэхгүй (өмнөх алхам амжилтгүй).");
+  else if (state.enforce === false) row("skip", "–", "3. Banker унтраалттай: safety шалгалтгүйгээр шууд олгоно.");
   else if (status === "granted") row("ok", "✔", "3. Түр олгоход төлөв SAFE хэвээр: олгосон.");
   else if (status === "unsafe") row("bad", "✖", "3. Түр олгоход төлөв UNSAFE болно: татгалзсан.");
   else if (status) row("skip", "–", "3. Safety шалгалт хийгдсэнгүй.");
@@ -389,96 +418,119 @@ const PRESETS = {
     note: "Эхнээсээ UNSAFE. Туршиж үз: P0 дээр Release (2,1) хийвэл төлөв SAFE болно." },
   big: { name: "Том туршилт 10×5", data: bigScenario(10, 5, 2026), note: "10 процесс, 5 нөөц. Төлөв SAFE." }
 };
+PRESETS.nobanker = { name: "Banker-гүй: Deadlock-д хүрэх", enforce: false, data: PRESETS.book.data,
+  note: "Banker унтраалттай. Туршиж үз: P1 (1,0,2), дараа нь P0 (0,2,0) хүс. Banker-тэй бол татгалзах байсан хүсэлт олгогдож, төлөв UNSAFE болно." };
 Object.keys(PRESETS).forEach((k) => { const o = el("option", null, PRESETS[k].name); o.value = k; $("preset").appendChild(o); });
 $("preset").onchange = async () => {
   const k = $("preset").value; if (!k) return; $("preset").value = "";
-  try { const data = await api("/api/load", "POST", PRESETS[k].data); applyState(data.state); showMsg("loaded", "«" + PRESETS[k].name + "» ачааллаа. " + PRESETS[k].note); }
+  try { await api("/api/load", "POST", PRESETS[k].data); const data = await api("/api/mode", "POST", { enforce: PRESETS[k].enforce !== false }); applyState(data.state); showMsg("loaded", "«" + PRESETS[k].name + "» ачааллаа. " + PRESETS[k].note); }
   catch (e) { fail(e); }
 };
 
 /* ---------- мэдэгдэл ---------- */
 const TITLES = { granted: "✔ Request can be granted: олгосон", released: "✔ Чөлөөлсөн", wait: "⏳ Хүлээнэ (нөөц хүрэлцэхгүй)",
-                 unsafe: "✖ Татгалзсан: олговол UNSAFE болно", error: "⚠ Алдаа", loaded: "ℹ Ачааллаа", reset: "ℹ Буцаалаа" };
+                 unsafe: "✖ Татгалзсан: олговол UNSAFE болно", error: "⚠ Алдаа", loaded: "ℹ Ачааллаа", reset: "ℹ Буцаалаа", mode: "ℹ Горим солигдлоо" };
 function showMsg(status, message) {
   const m = $("msg"); m.className = status; m.textContent = "";
   m.appendChild(el("span", "mt", TITLES[status] || status)); m.appendChild(document.createTextNode(message));
 }
 
-/* ---------- Автомат тоглуулах ---------- */
-let playTimer = null, playMs = 800;
-function stopPlay() { if (playTimer) { clearInterval(playTimer); playTimer = null; } }
-function startPlay() {
-  stopPlay();
-  playTimer = setInterval(() => {
-    if (!lastState || selStep >= lastState.steps.length - 1) { stopPlay(); renderSafety(); return; }
-    selStep++; renderSafety();
-  }, playMs);
+/* ---------- Safety simulation: нэг нэгдсэн алхам (cur = дууссан процессын тоо, 0..N) ---------- */
+let cur = 0, playTimer = null, playMs = 800;
+const nSteps = () => (lastState ? lastState.steps.length : 0);
+const pidx = (st) => Number(st.process.slice(1));
+function renderPlayBtn() { $("sPlay").textContent = playTimer ? "⏸ Pause" : "▶ Play"; }
+function stopPlay() { if (playTimer) { clearInterval(playTimer); playTimer = null; } renderPlayBtn(); }
+function startPlay() { if (playTimer) clearInterval(playTimer); playTimer = setInterval(() => { if (cur >= nSteps()) stopPlay(); else setStep(cur + 1, true); }, playMs); renderPlayBtn(); }
+function togglePlay() { if (playTimer) { stopPlay(); return; } if (!nSteps()) return; if (cur >= nSteps()) setStep(0, true); startPlay(); }
+function setStep(k, keep) {
+  if (!lastState) return; if (!keep) stopPlay();
+  cur = Math.max(0, Math.min(nSteps(), k)); renderSim(); renderSafety();
+  if (typeof window.setGraphStep === "function") window.setGraphStep(cur);
 }
-function togglePlay() {
-  if (playTimer) { stopPlay(); renderSafety(); return; }
-  if (!lastState || !lastState.steps.length) return;
-  if (selStep >= lastState.steps.length - 1) selStep = 0;
-  startPlay(); renderSafety();
+function checkRows(work, done, stopAt) {   // Need ≤ Work шалгалт: ✔/✖ (дууссан процессыг алгасна)
+  const s = lastState, box = el("div", "fits");
+  for (let i = 0; i < s.n; i++) {
+    if (done.has(i)) continue;
+    const ok = s.need[i].every((x, j) => x <= work[j]), r = el("div", "fit " + (ok ? "ok" : "bad"));
+    r.appendChild(el("span", "mk", ok ? "✔" : "✖")); r.appendChild(pill(i));
+    const jf = s.need[i].findIndex((x, j) => x > work[j]);
+    r.appendChild(el("span", null, "Need " + vec(s.need[i]) + (ok ? " ≤ " : " нь ") + "Work " + vec(work) + (ok ? "" : "-д багтахгүй: R" + jf + " дээр " + s.need[i][jf] + " > " + work[jf])));
+    box.appendChild(r); if (stopAt === i) break;
+  }
+  return box;
 }
-function goStep(k) { stopPlay(); if (!lastState) return; selStep = Math.max(0, Math.min(lastState.steps.length - 1, k)); renderSafety(); }
-
-/* ---------- Safety analysis ---------- */
-function renderSafety() {
+const PSEUDO = ["Work = Available;  Finish[i] = false (бүгд)", "Finish[i] = false ба Need[i] ≤ Work байх i-г ол", "Олдвол: Work += Allocation[i];  Finish[i] = true;  2-р мөр рүү буц", "Олдохгүй бол → 5-р мөр рүү", "Бүх Finish[i] = true бол SAFE, үгүй бол UNSAFE"];
+function renderSim() {
+  const s = lastState; if (!s) return; const N = nSteps();
+  $("sRange").max = N; $("sRange").value = cur; $("sPos").textContent = "Алхам " + cur + " / " + N;
+  $("sFirst").disabled = $("sPrev").disabled = cur <= 0; $("sNext").disabled = $("sLast").disabled = cur >= N; $("sRange").disabled = $("sPlay").disabled = !N;
+  const done = new Set(s.steps.slice(0, cur).map(pidx)), work = cur === 0 ? s.available : s.steps[cur - 1].work_after;
+  const w = $("work"); w.textContent = ""; w.appendChild(el("div", "wt", "Work вектор: одоо чөлөөтэй гэж тооцох нөөц"));
+  const wr = el("div", "wrow"); work.forEach((v, j) => { const c = el("div", "wchip"); c.appendChild(rlabel(j)); c.appendChild(el("b", null, String(v))); wr.appendChild(c); }); w.appendChild(wr);
+  w.appendChild(el("div", "wsub", "Дууссан: " + (done.size ? Array.from(done).map((i) => "P" + i).join(", ") : "—")));
+  const hl = cur === 0 && N > 0 ? 0 : (cur >= N ? 4 : 2), p = $("pseudo"); p.textContent = ""; p.appendChild(el("div", "pt", "Safety Algorithm · одоогийн мөр"));
+  PSEUDO.forEach((t, i) => { const r = el("div", "pl" + (i === hl ? " on" : "")); r.appendChild(el("span", "ln", String(i + 1))); r.appendChild(el("span", null, t)); p.appendChild(r); });
+  const ex = $("explain"); ex.textContent = ""; const title = el("div", "et"), body = el("div", "eb");
+  if (cur === 0) {
+    title.textContent = "Эхлэл: Work = Available";
+    body.textContent = "Work = " + vec(s.available) + ". Одоогоор ямар ч процесс дуусаагүй. " + (N ? "«Дараах ▶» дарахад Need ≤ Work нөхцөлийг хангах эхний процессыг хайна:" : "Нэг ч процессын Need нь Work-д багтахгүй байна:");
+    ex.appendChild(title); ex.appendChild(body); ex.appendChild(checkRows(work, done, N ? pidx(s.steps[0]) : null));
+  } else {
+    const st = s.steps[cur - 1], i = pidx(st);
+    title.textContent = "P" + i + " дуусаж чадна (" + cur + "/" + N + ")";
+    body.textContent = "P" + i + "-ийн хэрэгцээ Need " + vec(s.need[i]) + " нь Work " + vec(st.work_before) + "-д багтаж байна. Тэр ажлаа дуусгаад эзэмшиж байсан " + vec(s.allocation[i]) + " нөөцөө буцаана. Work: " + vec(st.work_before) + " → " + vec(st.work_after) + ".";
+    ex.appendChild(title); ex.appendChild(body); ex.appendChild(checkRows(st.work_before, new Set(s.steps.slice(0, cur - 1).map(pidx)), i));
+  }
+  if (cur >= N) {
+    const left = []; for (let i = 0; i < s.n; i++) if (!done.has(i)) left.push(i);
+    if (!s.safe && cur > 0) ex.appendChild(checkRows(work, done, null));
+    const fin = el("div", "efin " + (s.safe ? "ok" : "bad"));
+    fin.textContent = s.safe ? "Бүх процесс дууслаа → төлөв SAFE. Safe sequence: " + s.sequence.join(" → ")
+      : "Үлдсэн " + left.map((i) => "P" + i).join(", ") + " нь Need ≤ Work нөхцөлийг хангахгүй тул дуусч чадахгүй → төлөв UNSAFE." + (s.enforce === false ? " Banker унтраалттай үед үлдсэн процессууд Max хүртэл хүсвэл бүгд хүлээж гацна: DEADLOCK." : "");
+    ex.appendChild(fin);
+  }
+}
+function renderSafety() {   // Safe sequence-ийн хүснэгт; сонгосон алхам = cur
   const state = lastState; if (!state) return;
   const seq = $("seq"), box = $("steps"); seq.textContent = ""; box.textContent = "";
   if (state.safe) {
     const chain = el("div", "chain");
     state.steps.forEach((s, k) => {
       if (k) chain.appendChild(el("span", "arrow", "→"));
-      const idx = Number(s.process.slice(1)); const c = el("div", "scard" + (k === selStep ? " sel" : ""));
-      const top = el("div"); top.appendChild(pill(idx)); top.appendChild(el("span", "chk", "✓")); c.appendChild(top);
-      c.appendChild(el("div", "wv", "Work " + vec(s.work_after))); c.onclick = () => goStep(k);
-      chain.appendChild(c);
+      const c = el("div", "scard" + (k === cur - 1 ? " sel" : "")), top = el("div"); top.appendChild(pill(pidx(s))); top.appendChild(el("span", "chk", "✓")); c.appendChild(top);
+      c.appendChild(el("div", "wv", "Work " + vec(s.work_after))); c.onclick = () => setStep(k + 1); chain.appendChild(c);
     });
     seq.appendChild(chain);
   } else {
-    const done = state.steps.map((s) => s.process); const stuck = [];
+    const done = state.steps.map((s) => s.process), stuck = [];
     for (let i = 0; i < state.n; i++) if (!done.includes("P" + i)) stuck.push(i);
     const b = el("div", "unsafebox"); b.appendChild(el("b", null, "UNSAFE: Safe sequence байхгүй"));
-    b.appendChild(document.createTextNode("Дараах процессууд дуусч чадахгүй (Need нь Work-оос их): "));
-    b.appendChild(document.createElement("br")); stuck.forEach((i) => { const p = pill(i); p.style.margin = "4px 6px 0 0"; b.appendChild(p); });
-    seq.appendChild(b);
+    b.appendChild(document.createTextNode("Дараах процессууд дуусч чадахгүй (Need нь Work-оос их): ")); b.appendChild(document.createElement("br"));
+    stuck.forEach((i) => { const p = pill(i); p.style.margin = "4px 6px 0 0"; b.appendChild(p); }); seq.appendChild(b);
   }
   if (!state.steps.length) return;
-  const t = el("table", "steps"); const hr = el("tr");
-  ["Step", "Process", "Work before", "Need", "Work after"].forEach((x) => hr.appendChild(el("th", null, x))); t.appendChild(hr);
+  const t = el("table", "steps"), hr = el("tr"); ["Step", "Process", "Work before", "Need", "Work after"].forEach((x) => hr.appendChild(el("th", null, x))); t.appendChild(hr);
   state.steps.forEach((s, k) => {
-    const idx = Number(s.process.slice(1)); const tr = el("tr", k === selStep ? "sel" : ""); tr.onclick = () => goStep(k);
-    tr.appendChild(el("td", null, (k === selStep ? "→ " : "") + (k + 1))); tr.appendChild(td(pill(idx)));
-    tr.appendChild(el("td", null, vec(s.work_before))); tr.appendChild(el("td", null, vec(state.need[idx]))); tr.appendChild(el("td", null, vec(s.work_after)));
-    t.appendChild(tr);
+    const i = pidx(s), tr = el("tr", k === cur - 1 ? "sel" : ""); tr.onclick = () => setStep(k + 1);
+    tr.appendChild(el("td", null, (k === cur - 1 ? "→ " : "") + (k + 1))); tr.appendChild(td(pill(i)));
+    tr.appendChild(el("td", null, vec(s.work_before))); tr.appendChild(el("td", null, vec(state.need[i]))); tr.appendChild(el("td", null, vec(s.work_after))); t.appendChild(tr);
   });
   box.appendChild(t);
-  const nav = el("div", "stepnav");
-  const prev = el("button", null, "◀ Өмнөх"), next = el("button", null, "Дараах ▶");
-  prev.disabled = selStep <= 0; next.disabled = selStep >= state.steps.length - 1;
-  prev.onclick = () => goStep(selStep - 1); next.onclick = () => goStep(selStep + 1);
-  const play = el("button", "primary", playTimer ? "⏸ Pause" : "▶ Play"); play.onclick = togglePlay;
-  const sp = el("select"); [["1600", "0.5×"], ["800", "1×"], ["400", "2×"], ["200", "4×"]].forEach(([v, t]) => { const o = el("option", null, t); o.value = v; sp.appendChild(o); });
-  sp.value = String(playMs); sp.title = "Тоглуулах хурд";
-  sp.onchange = () => { playMs = Number(sp.value); if (playTimer) startPlay(); };
-  nav.appendChild(prev); nav.appendChild(next); nav.appendChild(play); nav.appendChild(sp);
-  nav.appendChild(el("small", null, "Алхам " + (selStep + 1) + " / " + state.steps.length));
-  box.appendChild(nav);
-  box.appendChild(el("div", "explain", "Work: тухайн мөчид чөлөөтэй гэж тооцох нөөц. Процесс дуусаад өөрийн Allocation-ийг буцаах тул Work нэмэгдэнэ. Процесс зөвхөн Need ≤ Work үед дуусч чадна."));
 }
 
 /* ---------- төлөв ---------- */
 function applyState(state) {
-  stopPlay(); lastState = state; selStep = 0;
+  stopPlay(); lastState = state; cur = 0;
   draft = { available: state.available.map(String), max: state.max.map((r) => r.map(String)), allocation: state.allocation.map((r) => r.map(String)) };
-  renderTables();
+  applying = true; renderTables(); applying = false; $("dirty").hidden = true;
   $("kN").textContent = state.n; $("kM").textContent = state.m; $("kAvail").textContent = vec(state.available);
   const ks = $("kSeq"); ks.textContent = state.safe ? state.sequence.join(" → ") : "Байхгүй (UNSAFE)";
-  const b = $("badge"); b.className = "badge " + (state.safe ? "safe" : "unsafe"); b.textContent = state.safe ? "SAFE STATE" : "UNSAFE STATE";
-  renderSafety();
+  const off = state.enforce === false; $("bankerOn").checked = !off; $("modewarn").hidden = !off;
+  const b = $("badge"); b.className = "badge " + (state.safe ? "safe" : "unsafe"); b.textContent = state.safe ? "SAFE STATE" : (off ? "UNSAFE · DEADLOCK RISK" : "UNSAFE STATE");
+  renderSafety(); renderSim();
   const g = $("graph");
-  if (typeof window.drawGraph === "function") { try { window.drawGraph(state, g); } catch (e) { g.textContent = "Граф зурахад алдаа гарлаа: " + e.message; } }
+  if (typeof window.drawGraph === "function") { try { window.drawGraph(state, g, { embedded: true, step: 0 }); } catch (e) { g.textContent = "Граф зурахад алдаа гарлаа: " + e.message; } }
   else { g.textContent = "Resource graph хараахан хэрэгжээгүй."; }
 }
 function handleResult(data) { if (data.request_result) showMsg(data.request_result.status, data.request_result.message); applyState(data.state); }
@@ -494,11 +546,13 @@ $("btnApply").onclick = async () => {
     showMsg("loaded", "Өгөгдлийг хэрэглэж, safety шалгалтыг ажиллууллаа."); applyState(data.state);
   } catch (e) {
     showMsg("error", e.message);
+    const dd = $("dirty"); dd.hidden = false; dd.className = "dirty bad"; dd.textContent = "✖ Өгөгдөл буруу тул хэрэглэгдсэнгүй. Дээд талын SAFE/UNSAFE нь өмнөх зөв төлөвийнх хэвээр байна.";
     document.querySelectorAll("#tables input").forEach((i) => { if (!/^\d+$/.test(i.value.trim())) i.classList.add("invalid"); });
   }
 };
 $("btnExample").onclick = () => api("/api/example", "POST", {}).then(handleResult).catch(fail);
 $("btnReset").onclick = () => api("/api/reset", "POST", {}).then(handleResult).catch(fail);
+$("bankerOn").onchange = () => { const box = $("bankerOn"); api("/api/mode", "POST", { enforce: box.checked }).then(handleResult).catch((e) => { box.checked = !box.checked; fail(e); }); };
 $("btnRequest").onclick = () => doAction("request");
 $("btnRelease").onclick = () => doAction("release");
 $("btnAddP").onclick = () => { const m = draft.available.length; draft.max.push(Array(m).fill("0")); draft.allocation.push(Array(m).fill("0")); renderTables(); };
@@ -506,6 +560,9 @@ $("btnDelP").onclick = () => { if (draft.max.length > 1) { draft.max.pop(); draf
 $("btnAddR").onclick = () => { draft.available.push("0"); draft.max.forEach((r) => r.push("0")); draft.allocation.forEach((r) => r.push("0")); renderTables(); };
 $("btnDelR").onclick = () => { if (draft.available.length > 1) { draft.available.pop(); draft.max.forEach((r) => r.pop()); draft.allocation.forEach((r) => r.pop()); renderTables(); } else showMsg("error", "Дор хаяж 1 нөөц байх ёстой."); };
 
+$("sFirst").onclick = () => setStep(0); $("sPrev").onclick = () => setStep(cur - 1); $("sNext").onclick = () => setStep(cur + 1); $("sLast").onclick = () => setStep(nSteps());
+$("sPlay").onclick = togglePlay; $("sRange").oninput = () => setStep(Number($("sRange").value));
+$("sSpeed").onchange = () => { playMs = Number($("sSpeed").value); if (playTimer) startPlay(); };
 renderLog();
 api("/api/state").then(applyState).catch(fail);
 </script>
