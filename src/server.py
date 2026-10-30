@@ -5,11 +5,11 @@
 
 API (JSON). Бүх хариу UTF-8.
   GET  /api/state      -> төлөв (core.to_json())
-  POST /api/load       -> {available, max, allocation?} шинэ төлөв ачаална
+  POST /api/load       -> {available, max, allocation?} шинэ өгөгдөл оруулна
   POST /api/request    -> {process, request}
   POST /api/release    -> {process, release}
-  POST /api/reset      -> анх ачаалсан төлөвт буцаана
-  POST /api/example    -> номын 8.6.3 жишээг ачаална
+  POST /api/reset      -> эхний төлөвт буцаана
+  POST /api/example    -> номын 8.6.3 жишээг оруулна
   POST /api/mode       -> {enforce: true|false} Banker's Algorithm-ийн safety шалгалтыг асаах/унтраах
 
 request/release/reset/example -> 200 {"request_result": {status, message}, "state": {...}}
@@ -90,11 +90,11 @@ class App:
     def example(self):
         self.banker = _example_banker()
         self.banker.enforce = self.enforce
-        return self._wrap("loaded", "Номын 8.6.3 жишээг ачааллаа")
+        return self._wrap("loaded", "Номын 8.6.3 жишээг оруулсан")
 
     def reset(self):
         self.banker.reset()
-        return self._wrap("reset", "Анх ачаалсан төлөвт буцлаа")
+        return self._wrap("reset", "Эхний төлөвт буцлаа")
 
     def mode(self, data):
         if not isinstance(data, dict) or not isinstance(data.get("enforce"), bool):
@@ -149,7 +149,7 @@ class Handler(BaseHTTPRequestHandler):
         try:
             return json.loads(raw.decode("utf-8"))
         except (UnicodeDecodeError, json.JSONDecodeError):
-            raise BadRequest("JSON задлагдсангүй")
+            raise BadRequest("JSON уншигдсангүй")
 
     # ---- GET ----
     def do_GET(self):
@@ -212,14 +212,14 @@ def main(argv=None):
     try:
         server = make_server(args.host, args.port)
     except OSError as e:
-        print(f"алдаа: {args.host}:{args.port} дээр сервер ассангүй "
+        print(f"алдаа: {args.host}:{args.port} дээр сервер асаж чадсангүй "
               f"({e.strerror}). Өөр порт сонгоно уу: --port 5001")
         return 2
     print(f"Banker's Algorithm UI: http://{args.host}:{args.port}  (зогсоох: Ctrl+C)")
     try:
         server.serve_forever()
     except KeyboardInterrupt:
-        print("\nЗогслоо")
+        print("\nСервер зогслоо")
     finally:
         server.server_close()
     return 0
