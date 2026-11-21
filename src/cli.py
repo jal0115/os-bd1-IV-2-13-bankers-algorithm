@@ -143,6 +143,8 @@ def execute(b, line):
 def parse_args(argv):
     p = argparse.ArgumentParser(
         prog="cli.py", description="Banker's Algorithm (сурах бичиг Ch. 8)")
+    p.add_argument("--commands", metavar="FILE",
+                   help="RQ, RL, * командуудыг UTF-8 файлаас унших")
     p.add_argument("resources", nargs="*", metavar="R",
                    help="нийт нөөц, жишээ нь: 10 5 7")
     p.add_argument("--max", dest="max_file", required=True,
@@ -167,6 +169,18 @@ def main(argv=None, stdin=None, out=None):
         return 2
     for w in warnings:
         print(w, file=out)
+    if args.commands is None:
+        return run_commands(b, stdin, out)
+
+    try:
+        with open(args.commands, encoding="utf-8-sig") as commands:
+            return run_commands(b, commands, out)
+    except (OSError, UnicodeError) as e:
+        print(f"алдаа: командын файл {args.commands}: {e}", file=out)
+        return 2
+
+
+def run_commands(b, stdin, out):
     interactive = hasattr(stdin, "isatty") and stdin.isatty()
     while True:
         if interactive:
