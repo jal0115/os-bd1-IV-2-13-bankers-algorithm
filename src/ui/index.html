@@ -268,7 +268,15 @@ function numInput(value, onChange) {
   i.addEventListener("input", () => { i.classList.remove("invalid"); onChange(i); markDirty(); }); return i;
 }
 let applying = false;
-function markDirty() { const d = $("dirty"); d.hidden = false; d.className = "dirty"; d.textContent = "✎ Өөрчлөлт хараахан хэрэглэгдээгүй. Дээд талын төлөв (SAFE/UNSAFE), граф, түүх хуучин өгөгдлөөр байна. «▶ Шалгах» дарна уу."; }
+function lockDraftActions(locked) {
+  $("btnRequest").disabled = locked;
+  $("btnRelease").disabled = locked;
+  $("bankerOn").disabled = locked;
+}
+
+function markDirty() {
+  lockDraftActions(true);
+  const d = $("dirty"); d.hidden = false; d.className = "dirty"; d.textContent = "✎ Өөрчлөлт хараахан хэрэглэгдээгүй. Дээд талын төлөв (SAFE/UNSAFE), граф, түүх хуучин өгөгдлөөр байна. «▶ Шалгах» дарна уу."; }
 function rlabel(j) { const s = el("span"); const d = el("span", "dot"); d.style.background = C.resource[j % C.resource.length]; s.appendChild(d); s.appendChild(document.createTextNode("R" + j)); return s; }
 function td(child, cls) { const t = el("td", cls || ""); if (child) t.appendChild(child); return t; }
 
@@ -429,11 +437,27 @@ const PRESETS = {
 PRESETS.nobanker = { name: "Banker-гүй: Deadlock-д хүрэх", enforce: false, data: PRESETS.book.data,
   note: "Banker унтраалттай. Туршиж үз: P1 (1,0,2), дараа нь P0 (0,2,0) хүс. Banker-тэй бол татгалзах байсан хүсэлт олгогдож, төлөв UNSAFE болно." };
 Object.keys(PRESETS).forEach((k) => { const o = el("option", null, PRESETS[k].name); o.value = k; $("preset").appendChild(o); });
-$("preset").onchange = async () => {
-  const k = $("preset").value; if (!k) return;
-  try { let data = await api("/api/load", "POST", PRESETS[k].data); const want = PRESETS[k].enforce !== false; if ((data.state.enforce !== false) !== want) data = await api("/api/mode", "POST", { enforce: want }); applyState(data.state); showMsg("loaded", "«" + PRESETS[k].name + "» ачааллаа. " + PRESETS[k].note); }
-  catch (e) { fail(e); }
-};
+async function loadPreset(key) {
+  const preset = PRESETS[key];
+  if (!preset) return;
+
+  try {
+    const data = await api("/api/load", "POST", {
+      ...preset.data,
+      enforce: preset.enforce !== false
+    });
+    applyState(data.state);
+    $("preset").value = key;
+    document.querySelectorAll("#reqVec input").forEach(input => {
+      input.value = "0";
+      input.dispatchEvent(new Event("input", { bubbles: true }));
+    });
+    showMsg("loaded", "«" + preset.name + "» " + preset.note);
+  } catch (e) {
+    fail(e);
+  }
+}
+$("preset").onchange = () => loadPreset($("preset").value);
 
 /* ---------- мэдэгдэл ---------- */
 const TITLES = { granted: "✔ Хүсэлтийг олгосон", released: "✔ Чөлөөлсөн", wait: "⏳ Хүлээнэ (нөөц хүрэлцэхгүй)",
@@ -492,7 +516,11 @@ function renderSafety() {
 function applyState(state) {
   stopPlay(); lastState = state; graphK = 0;
   draft = { available: state.available.map(String), max: state.max.map((r) => r.map(String)), allocation: state.allocation.map((r) => r.map(String)) };
-  applying = true; renderTables(); applying = false; $("dirty").hidden = true;
+  applying = true;
+  renderTables();
+  applying = false;
+  $("dirty").hidden = true;
+  lockDraftActions(false);
   $("kN").textContent = state.n; $("kM").textContent = state.m; $("kAvail").textContent = vec(state.available);
   const ks = $("kSeq"); ks.textContent = state.safe ? state.sequence.join(" → ") : "Байхгүй (UNSAFE)";
   const off = state.enforce === false; $("bankerOn").checked = !off; $("modewarn").hidden = !off;
@@ -519,7 +547,7 @@ $("btnApply").onclick = async () => {
     document.querySelectorAll("#tables input").forEach((i) => { if (!/^\d+$/.test(i.value.trim())) i.classList.add("invalid"); });
   }
 };
-$("btnExample").onclick = () => { $("preset").value = "book"; api("/api/example", "POST", {}).then(handleResult).catch(fail); };
+$("btnExample").onclick = () => loadPreset("book");
 $("btnReset").onclick = () => { $("preset").value = ""; api("/api/reset", "POST", {}).then(handleResult).catch(fail); };
 $("bankerOn").onchange = () => { const box = $("bankerOn"); api("/api/mode", "POST", { enforce: box.checked }).then(handleResult).catch((e) => { box.checked = !box.checked; fail(e); }); };
 $("btnRequest").onclick = () => doAction("request");
@@ -529,6 +557,7 @@ $("btnDelP").onclick = () => { if (draft.max.length > 1) { draft.max.pop(); draf
 $("btnAddR").onclick = () => { draft.available.push("0"); draft.max.forEach((r) => r.push("0")); draft.allocation.forEach((r) => r.push("0")); renderTables(); };
 $("btnDelR").onclick = () => { if (draft.available.length > 1) { draft.available.pop(); draft.max.forEach((r) => r.pop()); draft.allocation.forEach((r) => r.pop()); renderTables(); } else showMsg("error", "Дор хаяж 1 нөөц байх ёстой."); };
 
+lockDraftActions(true);
 renderLog();
 api("/api/state").then(applyState).catch(fail);
 </script>

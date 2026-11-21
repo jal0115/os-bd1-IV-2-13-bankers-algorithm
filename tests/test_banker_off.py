@@ -49,3 +49,19 @@ def test_mode_rejects_non_bool():
         app.mode({"enforce": "yes"})
     with pytest.raises(BadRequest):
         app.mode({})
+
+
+def test_book_preset_restores_safety_before_requests():
+    app = App()
+    app.mode({"enforce": False})
+
+    loaded = app.load({**EXAMPLE, "enforce": True})
+    assert loaded["state"]["enforce"] is True
+
+    first = app.request({"process": 1, "request": [1, 0, 2]})
+    assert first["request_result"]["status"] == GRANTED
+
+    before = app.state()
+    second = app.request({"process": 0, "request": [0, 2, 0]})
+    assert second["request_result"]["status"] == UNSAFE
+    assert app.state() == before

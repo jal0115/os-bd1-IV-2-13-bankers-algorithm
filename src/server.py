@@ -79,12 +79,16 @@ class App:
         for key in ("available", "max"):
             if key not in data:
                 raise BadRequest(f"'{key}' талбар дутуу байна")
+        enforce = data.get("enforce", self.enforce)
+        if not isinstance(enforce, bool):
+            raise BadRequest("enforce нь true эсвэл false байна")
         try:
             self.banker = Banker(data["available"], data["max"],
                                  data.get("allocation"))
         except BankerError as e:
             raise BadRequest(str(e))
-        self.banker.enforce = self.enforce
+        self.enforce = enforce
+        self.banker.enforce = enforce
         return {"state": self.state()}
 
     def example(self):
