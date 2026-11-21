@@ -79,6 +79,13 @@ class App:
         for key in ("available", "max"):
             if key not in data:
                 raise BadRequest(f"'{key}' талбар дутуу байна")
+        maximum = data["max"]
+        available = data["available"]
+        if isinstance(maximum, list) and len(maximum) > 20:
+            raise BadRequest("Дээд хэмжээ: 20 процесс")
+        if isinstance(available, list) and len(available) > 8:
+            raise BadRequest("Дээд хэмжээ: 8 нөөц")
+
         enforce = data.get("enforce", self.enforce)
         if not isinstance(enforce, bool):
             raise BadRequest("enforce нь true эсвэл false байна")
@@ -192,6 +199,14 @@ class Handler(BaseHTTPRequestHandler):
         fn = routes.get(path)
         if fn is None:
             return self._json(404, {"error": "Ийм API байхгүй"})
+        if self.headers.get_content_type() != "application/json":
+            return self._json(415, {"error": "Content-Type нь application/json байх ёстой"})
+
+        origin = self.headers.get("Origin")
+        host = self.headers.get("Host")
+        if origin is not None and (not host or origin != f"http://{host}"):
+            return self._json(403, {"error": "Өөр origin-оос ирсэн хүсэлтийг зөвшөөрөхгүй"})
+
         try:
             data = self._read_json()
             with app.lock:

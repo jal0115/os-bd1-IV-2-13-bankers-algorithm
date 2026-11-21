@@ -175,7 +175,7 @@ def main(argv=None, stdin=None, out=None):
     try:
         with open(args.commands, encoding="utf-8-sig") as commands:
             return run_commands(b, commands, out)
-    except (OSError, UnicodeError) as e:
+    except (OSError, UnicodeDecodeError) as e:
         print(f"алдаа: командын файл {args.commands}: {e}", file=out)
         return 2
 
@@ -198,4 +198,6 @@ def run_commands(b, stdin, out):
 
 
 if __name__ == "__main__":
+    if not sys.stdout.isatty():
+        sys.stdout.reconfigure(encoding="utf-8")
     sys.exit(main())

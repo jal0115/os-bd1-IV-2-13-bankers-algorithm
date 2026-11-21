@@ -40,3 +40,19 @@ def test_missing_commands_file_returns_error(tmp_path):
 
     assert result.returncode == 2
     assert b"missing-commands.txt" in result.stdout
+
+
+def test_redirected_output_preserves_mongolian_text(monkeypatch):
+    monkeypatch.setenv("PYTHONIOENCODING", "cp1251")
+
+    result = subprocess.run(
+        CLI + ["--commands", "examples/book_commands.txt"],
+        cwd=ROOT,
+        stdin=subprocess.DEVNULL,
+        capture_output=True,
+        check=True,
+    )
+
+    output = result.stdout.decode("utf-8")
+    assert "Төлөв: SAFE" in output
+    assert "P0-ийн хүсэлтийг олговол unsafe болно" in output

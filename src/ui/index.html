@@ -232,7 +232,7 @@
     </div>
     <section class="card" style="grid-column:1/-1">
       <div class="loghead">
-        <div><h2><span class="no">5</span>Түүх (илгээсэн хүсэлтүүд)<span class="en">Request log</span></h2><p class="hint" style="margin:0 0 12px">Хүсэлт бүр дугаартай мөр болж, хамгийн сүүлийнх нь дээр гарна. Request / Release бүрийн цаг, үр дүн, шалтгаан. Тоолуур нь зөвхөн Request-ийг тоолно.</p></div>
+        <div><h2><span class="no">5</span>Түүх (илгээсэн хүсэлтүүд)<span class="en">Request log</span></h2><p class="hint" style="margin:0 0 12px">Хүсэлт бүр дугаартай мөр болж, хамгийн сүүлийнх нь дээр гарна. Request / Release бүрийн цаг, үр дүн, шалтгаан. Тоолуур нь зөвхөн Request-ийг тоолно. Хуудсыг шинэчлэхэд түүх, тоолуур цэвэрлэгдэнэ. Сервер дээрх нөөцийн хуваарилалт хэвээр үлдэнэ.</p></div>
         <button id="btnClearLog" class="danger">Түүх цэвэрлэх</button>
       </div>
       <div class="stats">
@@ -297,7 +297,14 @@ function rlabel(j) { const s = el("span"); const d = el("span", "dot"); d.style.
 function td(child, cls) { const t = el("td", cls || ""); if (child) t.appendChild(child); return t; }
 
 /* ---------- хүснэгт ---------- */
+const MAX_PROCESSES = 20;
+const MAX_RESOURCES = 8;
+
 function renderTables() {
+  $("btnAddP").disabled = draft.max.length >= MAX_PROCESSES;
+  $("btnAddR").disabled = draft.available.length >= MAX_RESOURCES;
+  $("btnAddP").title = "Дээд хэмжээ: 20 процесс";
+  $("btnAddR").title = "Дээд хэмжээ: 8 нөөц";
   if (!applying) markDirty();
   const n = draft.max.length, m = draft.available.length;
   const root = $("tables"); root.textContent = "";

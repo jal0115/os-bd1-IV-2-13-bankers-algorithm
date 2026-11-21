@@ -46,11 +46,11 @@ python src/server.py            # Mac/Linux: python3 src/server.py
 **2. CLI** (сурах бичгийн төсөл)
 
 ```bash
-python src/cli.py 10 5 7 --max examples/book_max.txt --allocation examples/book_allocation.txt < examples/book_commands.txt
+python src/cli.py 10 5 7 --max examples/book_max.txt --allocation examples/book_allocation.txt --commands examples/book_commands.txt
 ```
 
 Хүлээгдэх гаралт: эхний төлөв `SAFE <P1, P3, P0, P2, P4>`, дараа нь `granted` → `wait` → `unsafe`.
-Гараар оруулах бол `< examples/book_commands.txt`-ийг орхиж `RQ 1 1 0 2`, `RL 1 1 0 0`, `*`, `exit` бичнэ.
+Гараар оруулах бол `--commands examples/book_commands.txt`-ийг орхиж `RQ 1 1 0 2`, `RL 1 1 0 0`, `*`, `exit` бичнэ.
 
 **3. Автомат тест**
 
