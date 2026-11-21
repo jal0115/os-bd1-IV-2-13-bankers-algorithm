@@ -31,7 +31,7 @@ def _check_vector(v, m, name):
         raise BankerError(f"{name}: {m} урттай жагсаалт байх ёстой")
     for x in v:
         if not _is_int(x):
-            raise BankerError(f"{name}: бүхэл тоо байх ёстой (олдсон: {x!r})")
+            raise BankerError(f"{name}: бүхэл тоо байх ёстой (оруулсан утга: {x!r})")
         if x < 0:
             raise BankerError(f"{name}: сөрөг тоо байж болохгүй ({x})")
     return [int(x) for x in v]
