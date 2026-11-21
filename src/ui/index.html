@@ -377,7 +377,6 @@ let logRows = [], logSeq = 0;
 function pushLog(kind, proc, v, status, reason) {
   logRows.push({ n: ++logSeq, t: new Date().toLocaleTimeString("en-GB"), kind, proc, v: v.slice(), status, reason });
   if (kind === "request" && stats[status] !== undefined) stats[status]++;
-  else if (status === "error") stats.error++;
   renderLog();
 }
 function renderLog() {
