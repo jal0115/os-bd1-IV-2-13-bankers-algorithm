@@ -414,26 +414,15 @@ async function doAction(kind) {
 }
 
 /* ---------- Бэлэн сценариуд ---------- */
-function bigScenario(n, m, seed) {
-  let x = seed; const rnd = (k) => { x = (x * 1664525 + 1013904223) % 4294967296; return Math.floor((x / 4294967296) * k); };
-  const available = Array.from({ length: m }, () => 3 + rnd(4)); let work = available.slice();
-  const max = [], allocation = [];
-  for (let i = 0; i < n; i++) {   // P0..P(n-1) дарааллаар дуусч болох тул төлөв SAFE
-    const a = Array.from({ length: m }, () => rnd(4)), nd = work.map((w) => rnd(w + 1));
-    allocation.push(a); max.push(a.map((v, j) => v + nd[j])); work = work.map((w, j) => w + a[j]);
-  }
-  return { available, max, allocation };
-}
 const PRESETS = {
   book: { name: "Номын жишээ (5 процесс, 3 нөөц)", data: { available: [3, 3, 2],
     max: [[7, 5, 3], [3, 2, 2], [9, 0, 2], [2, 2, 2], [4, 3, 3]], allocation: [[0, 1, 0], [2, 0, 0], [3, 0, 2], [2, 1, 1], [0, 0, 2]] },
     note: "Туршиж үз: P1 (1,0,2) → олгоно; дараа нь P4 (3,3,0) → хүлээнэ; P0 (0,2,0) → UNSAFE тул татгалзана." },
-  unsafe: { name: "Unsafe эхний төлөв (Release хийвэл safe)", data: { available: [1, 1],
-    max: [[4, 3], [3, 3], [5, 2]], allocation: [[2, 1], [1, 2], [2, 0]] },
+  unsafe: { name: "Unsafe эхний төлөв (Release хийвэл safe)", scenario: "unsafe",
     note: "Эхнээсээ UNSAFE. Туршиж үз: P0 дээр Release (2,1) хийвэл төлөв SAFE болно." },
-  big: { name: "Том туршилт 10×5", data: bigScenario(10, 5, 2026), note: "10 процесс, 5 нөөц. Төлөв SAFE." }
+  big: { name: "Том туршилт 10×5", scenario: "big", note: "10 процесс, 5 нөөц. Төлөв SAFE." }
 };
-PRESETS.nobanker = { name: "Banker-гүй: Deadlock-д хүрэх", enforce: false, data: PRESETS.book.data,
+PRESETS.nobanker = { name: "Banker-гүй: UNSAFE төлөвт хүрэх", enforce: false, data: PRESETS.book.data,
   note: "Banker унтраалттай. Туршиж үз: P1 (1,0,2), дараа нь P0 (0,2,0) хүс. Banker-тэй бол татгалзах байсан хүсэлт олгогдож, төлөв UNSAFE болно." };
 Object.keys(PRESETS).forEach((k) => { const o = el("option", null, PRESETS[k].name); o.value = k; $("preset").appendChild(o); });
 async function loadPreset(key) {
@@ -441,8 +430,11 @@ async function loadPreset(key) {
   if (!preset) return;
 
   try {
+    const values = preset.scenario
+      ? (await api("/scenarios.json"))[preset.scenario]
+      : preset.data;
     const data = await api("/api/load", "POST", {
-      ...preset.data,
+      ...values,
       enforce: preset.enforce !== false
     });
     applyState(data.state);
@@ -495,7 +487,7 @@ function renderSafety() {
     const b = el("div", "unsafebox"); b.appendChild(el("b", null, "UNSAFE: Safe sequence байхгүй"));
     b.appendChild(document.createTextNode("Дараах процессууд дуусч чадахгүй (Need нь Work-оос их): "));
     b.appendChild(document.createElement("br")); stuck.forEach((i) => { const p = pill(i); p.style.margin = "4px 6px 0 0"; b.appendChild(p); });
-    if (state.enforce === false) { const w = el("div"); w.style.marginTop = "8px"; w.textContent = "Banker унтраалттай үед үлдсэн процессууд Max хүртэл хүсвэл бүгд хүлээж гацна: DEADLOCK."; b.appendChild(w); }
+    if (state.enforce === false) { const w = el("div"); w.style.marginTop = "8px"; w.textContent = "Бүх процессыг дуусгах аюулгүй дараалал олдсонгүй. Цаашдын хүсэлтээс шалтгаалан deadlock үүсэж болно."; b.appendChild(w); }
     seq.appendChild(b);
   }
   if (!state.steps.length) return;
