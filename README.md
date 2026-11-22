@@ -22,6 +22,7 @@ Resource graph-аар алхам алхмаар харуулах.
   (Номын жишээ, Unsafe эхний төлөв, Том туршилт 10×5, Banker-гүй).
 - **Resource graph (`graph.js`)**: цэнхэр сум = Allocation (нөөц → процесс), саарал тасархай сум = Need (процесс → нөөц);
   «▶ Эхлүүлэх» дарахад процесс дуусах бүрд сумнууд алга болж, нөөц чөлөөтэй болж, Work нэмэгдэнэ.
+  Need сум анх нуугдана. Нэг процессын үлдсэн хэрэгцээг харахдаа тэр процесс дээр хулганаа аваачих эсвэл дарна. Бүх процессын сумыг зэрэг харах бол «Need сумыг үргэлж харуулах» сонголтыг асаана.
 
 ## Quick Start
 
@@ -58,7 +59,7 @@ python src/cli.py 10 5 7 --max examples/book_max.txt --allocation examples/book_
 python -m venv .venv
 source .venv/bin/activate        # Windows: .venv\Scripts\activate
 pip install -r requirements.txt
-python -m pytest -q              # хүлээгдэх үр дүн: 64 passed
+python -m pytest -q              # хүлээгдэх үр дүн: 75 passed
 ```
 
 Дэлгэрэнгүй заавар, жишээ, алдаа ба шийдэл: **[docs/IV-2-13_Manual.pdf](docs/IV-2-13_Manual.pdf)**.
@@ -73,7 +74,7 @@ python -m pytest -q              # хүлээгдэх үр дүн: 64 passed
 | `src/server.py` | HTTP сервер + JSON API (Python стандарт сан) |
 | `src/ui/index.html` | UI: өгөгдлийн хүснэгт, хүсэлтийн форм, Safety analysis, түүх |
 | `src/ui/graph.js` | Resource graph (inline SVG), тоглуулах удирдлага |
-| `tests/` | 5 файл, 64 автомат тест (цөм 15, CLI 24, CLI төлөв 7, сервер 13, Banker унтраалттай 5) |
+| `tests/` | 9 файл, 75 автомат тест (цөм 15, CLI 24, CLI төлөв 7, сервер 13, Banker унтраалттай 6, бэлэн сценари 2, CLI командын файл 3, вэб хэмжээний хязгаар 3, HTTP толгой 2) |
 | `examples/` | Номын 8.6.3 жишээний Max, Allocation, командууд |
 | `docs/` | Manual, Report, `screenshots/`, `data-format.md`, `requirements.md` |
 
