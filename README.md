@@ -1,4 +1,4 @@
-# Banker's Algorithm – F.CSM302 Үйлдлийн систем, Бие даалт 1
+# Banker's Algorithm – F.CSM302 Үйлдлийн систем, Бие даалт 2 (Final)
 
 **Хуваарилалтын код:** IV-2-13
 **Төсөл:** Banker's Algorithm (Silberschatz, *Operating System Concepts*, 8-р бүлэг, Programming Projects)
@@ -23,6 +23,16 @@ Resource graph-аар алхам алхмаар харуулах.
 - **Resource graph (`graph.js`)**: цэнхэр сум = Allocation (нөөц → процесс), саарал тасархай сум = Need (процесс → нөөц);
   «▶ Эхлүүлэх» дарахад процесс дуусах бүрд сумнууд алга болж, нөөц чөлөөтэй болж, Work нэмэгдэнэ.
   Need сум анх нуугдана. Нэг процессын үлдсэн хэрэгцээг харахдаа тэр процесс дээр хулганаа аваачих эсвэл дарна. Бүх процессын сумыг зэрэг харах бол «Need сумыг үргэлж харуулах» сонголтыг асаана.
+
+## БД2-ын эцсийн материал
+
+- [Постер](docs/IV-2-13_Poster.pdf)
+- [Эцсийн тайлан](docs/IV-2-13_Final_Report.pdf)
+- [Хэрэглэгчийн гарын авлага](docs/IV-2-13_Manual.pdf)
+
+### Програмын бодит дүрслэл
+
+![Banker's Algorithm Resource Graph](docs/final-report/images/graph.png)
 
 ## Quick Start
 
@@ -63,7 +73,7 @@ python -m pytest -q              # хүлээгдэх үр дүн: 75 passed
 ```
 
 Дэлгэрэнгүй заавар, жишээ, алдаа ба шийдэл: **[docs/IV-2-13_Manual.pdf](docs/IV-2-13_Manual.pdf)**.
-Судалгаа, туршилтын үр дүн: **[docs/IV-2-13_BD1_Report.pdf](docs/IV-2-13_BD1_Report.pdf)**.
+Судалгаа, туршилтын үр дүн: **[docs/IV-2-13_Final_Report.pdf](docs/IV-2-13_Final_Report.pdf)**.
 
 ## Бүтэц
 
