@@ -11,7 +11,7 @@ Banker's Algorithm-аар түгжрэлээс (deadlock) сэргийлэх а�
 Allocation / Max / Available өгөгдөл болон хүсэлтийг өөрчилж дахин турших, safe state ба safe sequence-ийг
 Resource graph-аар алхам алхмаар харуулах.
 
-![Resource graph: Safe sequence-ийн 3-р алхам](docs/screenshots/s02_graph_step3.png)
+![Resource graph: Safe sequence-ийн 3-р алхам](docs/screenshots/s02_graph_step3%20%281%29.png)
 
 ## Юу хийж чадах вэ
 
