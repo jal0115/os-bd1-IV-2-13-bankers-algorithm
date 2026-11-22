@@ -1,0 +1,86 @@
+% !TeX program = xelatex
+\documentclass[12pt,a4paper]{article}
+\usepackage{fontspec,tikz}
+\usetikzlibrary{arrows.meta}
+\IfFontExistsTF{Liberation Serif}{\setmainfont{Liberation Serif}}{\setmainfont{FreeSerif}}
+\setmonofont{DejaVu Sans Mono}[Scale=.77]
+\usepackage[left=25mm,right=23mm,top=22mm,bottom=22mm,footskip=11mm]{geometry}
+\usepackage[table]{xcolor}
+\usepackage{graphicx,array,tabularx,booktabs,caption,enumitem,amsmath,titlesec,fancyvrb}
+\usepackage[hidelinks,unicode]{hyperref}
+\hypersetup{pdftitle={IV-2-13. Бие даалт 2. Banker’s Algorithm},pdfauthor={IV-2-13 баг},bookmarksnumbered=true}
+\definecolor{peach}{HTML}{EEEAE5}
+\definecolor{linecol}{HTML}{B3ACA4}
+\definecolor{ink}{HTML}{252626}
+\renewcommand{\figurename}{Зураг}
+\renewcommand{\tablename}{Хүснэгт}
+\renewcommand{\contentsname}{Агуулга}
+\renewcommand{\listfigurename}{Зургийн жагсаалт}
+\renewcommand{\listtablename}{Хүснэгтийн жагсаалт}
+\captionsetup{hypcap=false,font=normalsize,labelfont=bf,justification=centering,skip=5pt}
+\setcounter{tocdepth}{1}
+\setlength{\parindent}{5mm}
+\setlength{\parskip}{4.5pt plus .5pt}
+\setlength{\emergencystretch}{3em}
+\titleformat{\section}{\large\bfseries}{\thesection.}{.5em}{}
+\titleformat{\subsection}{\normalsize\bfseries}{\thesubsection.}{.5em}{}
+\titlespacing*{\section}{0pt}{0pt}{8pt}
+\titlespacing*{\subsection}{0pt}{9pt}{2pt}
+\setlist[enumerate]{leftmargin=7mm,itemsep=3pt,topsep=2pt,parsep=0pt}
+\renewcommand{\arraystretch}{1.22}
+\setlength{\tabcolsep}{5.5pt}
+\newcolumntype{C}{>{\centering\arraybackslash}X}
+\newcolumntype{Y}{>{\raggedright\arraybackslash}X}
+\newcolumntype{L}[1]{>{\raggedright\arraybackslash}p{#1}}
+\newcommand{\code}[1]{\texttt{\detokenize{#1}}}
+\newcommand{\hd}{\rowcolor{peach}\bfseries}
+\newcommand{\tbl}[3]{\vspace{2pt}\begingroup\centering\small\renewcommand{\arraystretch}{1.32}\setlength{\tabcolsep}{5pt}\setlength{\heavyrulewidth}{.75pt}\setlength{\lightrulewidth}{.35pt}\arrayrulecolor{linecol}\captionsetup{justification=raggedleft,singlelinecheck=false,font=small,labelfont=bf,skip=6pt}\captionof{table}[#1]{#1}\label{#2}#3\par\endgroup\vspace{3pt}}
+\newcommand{\fig}[5]{\begin{center}\includegraphics[width=#1\linewidth,height=#2,keepaspectratio]{images/#3.png}\captionof{figure}[#4]{#4}\label{#5}\end{center}}
+\newcommand{\lead}[1]{\par\noindent\textbf{#1}\enspace}
+\newcommand{\repo}{https://github.com/jal0115/os-bd1-IV-2-13-bankers-algorithm}
+\newcommand{\gitlink}[1]{\href{\repo/commit/#1}{\texttt{#1}}}
+\makeatletter
+\newcommand{\listofart}[2]{{\large\bfseries #1\par}\vspace{2pt}{\small\setlength{\parskip}{0pt}\@starttoc{#2}}}
+\makeatother
+\linespread{1.065}
+\begin{document}
+\begin{titlepage}\centering
+{\large\bfseries ШИНЖЛЭХ УХААН, ТЕХНОЛОГИЙН ИХ СУРГУУЛЬ\par}
+{\large\bfseries Мэдээлэл, холбооны технологийн сургууль\par}
+\vspace{9mm}\includegraphics[height=28mm]{images/must.png}\par
+\vspace{11mm}
+{\LARGE\bfseries БИЕ ДААЛТ 2\par}\vspace{2mm}
+{\LARGE\bfseries ЭЦСИЙН ТАЙЛАН\par}\vspace{6mm}
+{\large Үйлдлийн систем (F.CSM302)\par}
+{2026–2027 оны хичээлийн жилийн намрын улирал\par}
+\vspace{12mm}
+\begin{tabularx}{.94\textwidth}{@{}L{43mm}Y@{}}
+\textbf{Ажлын нэр} & \textbf{Banker’s Algorithm}\\
+& Нөөц хуваарилалт ба аюулгүй дарааллын дүрслэл\\[4pt]
+\textbf{Багийн код} & IV-2-13\\
+\textbf{Хичээл заасан багш} & Г.Ганбат /F.CS10/\\[4pt]
+\textbf{Гүйцэтгэсэн баг} & У.Анужин \hfill B241940071\\
+& Г.Лувсанжал \hfill B242270016\\
+& Г.Ганхүү \hfill B210930028\\
+& Г.Ганжаргал \hfill B222270701\\
+& Б.Лхагвадорж \hfill B231940136\\
+& Я.Төгөлдөр \hfill B242270806\\
+\end{tabularx}
+\vfill Улаанбаатар хот\\2026 он
+\end{titlepage}
+\setcounter{page}{2}
+\begin{center}{\Large\bfseries ХУРААНГУЙ}\end{center}
+Банкны алгоритм нь процессын хүссэн нөөцийг олгосны дараа бүх процессыг дуусгах боломжтой дараалал үлдэх эсэхийг шалгадаг. Энэхүү ажлаар алгоритмын шийдвэрийг терминалын команд, вэб хүснэгт, нөөцийн графаар тайлбарладаг БД1-ийн программыг II-4-10 багийн шүүмжид үндэслэн сайжруулав. Шүүмжлэгчид цөмийн тооцоо зөв гарч байгааг баталсан ч «Banker-гүй» горимоос номын жишээ рүү товчоор шилжихэд өмнөх горим хадгалагдаж, татгалзах ёстой хүсэлт олгогдож байгааг илрүүлсэн. Мөн Windows PowerShell дээр зааварт өгсөн командын файлыг уншуулахад алдаа гарсан. БД2-т жишээний өгөгдөл, горимыг хамтад нь ачаалдаг болгож, хүснэгтийн засварыг батлах хүртэл хүсэлт илгээх үйлдлийг түгжив. Терминалын программ командын файлыг шууд уншдаг болж, хоёр бэлэн жишээний өгөгдлийг вэб интерфейс ба автомат тестэд нэг эхээс ашигладаг болов. Дахин туршихад номын жишээнд P1-ийн хүсэлтийг олгож, P4-ийг хүлээлгэн, P0-ийн хүсэлтийг түр олгосны дараа аюулгүй дараалал олдоогүй тул буцаасан. Ингэснээр чөлөөтэй нөөц $(2,3,0)$ хэвээр үлдэж, хэрэглэгчийн харсан үр дүн цөмийн тооцоотой таарсан. Debian орчинд шүүмжийн мөрөөр нэмсэн 11 шалгалтыг оролцуулан нийт 75 автомат тест тэнцэв.
+\newpage
+\begingroup
+\setlength{\parindent}{0pt}\setlength{\parskip}{0pt}
+\listofart{Агуулга}{toc}\vspace{12pt}
+\listofart{Зургийн жагсаалт}{lof}\vspace{12pt}
+\listofart{Хүснэгтийн жагсаалт}{lot}
+\endgroup
+\newpage
+\input{project}
+\input{experiments}
+\input{review}
+\input{results}
+\end{document}
