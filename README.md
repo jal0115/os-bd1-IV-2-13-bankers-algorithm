@@ -1,4 +1,4 @@
-# Banker's Algorithm – F.CSM302 Үйлдлийн систем, Бие даалт 1
+# Banker's Algorithm – F.CSM302 Үйлдлийн систем, Бие даалт 2 (Final)
 
 **Хуваарилалтын код:** IV-2-13
 **Төсөл:** Banker's Algorithm (Silberschatz, *Operating System Concepts*, 8-р бүлэг, Programming Projects)
@@ -63,7 +63,7 @@ python -m pytest -q              # хүлээгдэх үр дүн: 75 passed
 ```
 
 Дэлгэрэнгүй заавар, жишээ, алдаа ба шийдэл: **[docs/IV-2-13_Manual.pdf](docs/IV-2-13_Manual.pdf)**.
-Судалгаа, туршилтын үр дүн: **[docs/IV-2-13_BD1_Report.pdf](docs/IV-2-13_BD1_Report.pdf)**.
+Судалгаа, туршилтын үр дүн: **[docs/IV-2-13_Final_Report.pdf](docs/IV-2-13_Final_Report.pdf)**.
 
 ## Бүтэц
 
