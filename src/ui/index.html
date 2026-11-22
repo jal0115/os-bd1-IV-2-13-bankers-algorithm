@@ -232,7 +232,7 @@
     </div>
     <section class="card" style="grid-column:1/-1">
       <div class="loghead">
-        <div><h2><span class="no">5</span>Түүх (илгээсэн хүсэлтүүд)<span class="en">Request log</span></h2><p class="hint" style="margin:0 0 12px">Хүсэлт бүр дугаартай мөр болж, хамгийн сүүлийнх нь дээр гарна. Request / Release бүрийн цаг, үр дүн, шалтгаан. Тоолуур нь зөвхөн Request-ийг тоолно.</p></div>
+        <div><h2><span class="no">5</span>Түүх (илгээсэн хүсэлтүүд)<span class="en">Request log</span></h2><p class="hint" style="margin:0 0 12px">Хүсэлт бүр дугаартай мөр болж, хамгийн сүүлийнх нь дээр гарна. Request / Release бүрийн цаг, үр дүн, шалтгаан. Тоолуур нь зөвхөн Request-ийг тоолно. Хуудсыг шинэчлэхэд түүх, тоолуур цэвэрлэгдэнэ. Сервер дээрх нөөцийн хуваарилалт хэвээр үлдэнэ.</p></div>
         <button id="btnClearLog" class="danger">Түүх цэвэрлэх</button>
       </div>
       <div class="stats">
@@ -284,12 +284,27 @@ function numInput(value, onChange) {
   i.addEventListener("input", () => { i.classList.remove("invalid"); onChange(i); markDirty(); }); return i;
 }
 let applying = false;
-function markDirty() { const d = $("dirty"); d.hidden = false; d.className = "dirty"; d.textContent = "✎ Өөрчлөлт хараахан шалгагдаагүй байна. Дээд талын төлөв (SAFE/UNSAFE), граф, түүх хуучин өгөгдлөөр байна. «▶ Шалгах» дарна уу."; }
+function lockDraftActions(locked) {
+  $("btnRequest").disabled = locked;
+  $("btnRelease").disabled = locked;
+  $("bankerOn").disabled = locked;
+}
+
+function markDirty() {
+  lockDraftActions(true);
+  const d = $("dirty"); d.hidden = false; d.className = "dirty"; d.textContent = "✎ Өөрчлөлт хараахан шалгагдаагүй байна. Дээд талын төлөв (SAFE/UNSAFE), граф, түүх хуучин өгөгдлөөр байна. «▶ Шалгах» дарна уу."; }
 function rlabel(j) { const s = el("span"); const d = el("span", "dot"); d.style.background = C.resource[j % C.resource.length]; s.appendChild(d); s.appendChild(document.createTextNode("R" + j)); return s; }
 function td(child, cls) { const t = el("td", cls || ""); if (child) t.appendChild(child); return t; }
 
 /* ---------- хүснэгт ---------- */
+const MAX_PROCESSES = 20;
+const MAX_RESOURCES = 8;
+
 function renderTables() {
+  $("btnAddP").disabled = draft.max.length >= MAX_PROCESSES;
+  $("btnAddR").disabled = draft.available.length >= MAX_RESOURCES;
+  $("btnAddP").title = "Дээд хэмжээ: 20 процесс";
+  $("btnAddR").title = "Дээд хэмжээ: 8 нөөц";
   if (!applying) markDirty();
   const n = draft.max.length, m = draft.available.length;
   const root = $("tables"); root.textContent = "";
@@ -385,7 +400,6 @@ let logRows = [], logSeq = 0;
 function pushLog(kind, proc, v, status, reason) {
   logRows.push({ n: ++logSeq, t: new Date().toLocaleTimeString("en-GB"), kind, proc, v: v.slice(), status, reason });
   if (kind === "request" && stats[status] !== undefined) stats[status]++;
-  else if (status === "error") stats.error++;
   renderLog();
 }
 function renderLog() {
@@ -432,33 +446,38 @@ async function doAction(kind) {
 }
 
 /* ---------- Бэлэн сценариуд ---------- */
-function bigScenario(n, m, seed) {
-  let x = seed; const rnd = (k) => { x = (x * 1664525 + 1013904223) % 4294967296; return Math.floor((x / 4294967296) * k); };
-  const available = Array.from({ length: m }, () => 3 + rnd(4)); let work = available.slice();
-  const max = [], allocation = [];
-  for (let i = 0; i < n; i++) {   // P0..P(n-1) дарааллаар дуусч болох тул төлөв SAFE
-    const a = Array.from({ length: m }, () => rnd(4)), nd = work.map((w) => rnd(w + 1));
-    allocation.push(a); max.push(a.map((v, j) => v + nd[j])); work = work.map((w, j) => w + a[j]);
-  }
-  return { available, max, allocation };
-}
 const PRESETS = {
   book: { name: "Номын жишээ (5 процесс, 3 нөөц)", data: { available: [3, 3, 2],
     max: [[7, 5, 3], [3, 2, 2], [9, 0, 2], [2, 2, 2], [4, 3, 3]], allocation: [[0, 1, 0], [2, 0, 0], [3, 0, 2], [2, 1, 1], [0, 0, 2]] },
     note: "Туршиж үзнэ үү: P1 (1,0,2) → олгоно; дараа нь P4 (3,3,0) → хүлээлгэнэ; P0 (0,2,0) → UNSAFE тул татгалзана." },
-  unsafe: { name: "Unsafe эхний төлөв (Release хийвэл safe)", data: { available: [1, 1],
-    max: [[4, 3], [3, 3], [5, 2]], allocation: [[2, 1], [1, 2], [2, 0]] },
+  unsafe: { name: "Unsafe эхний төлөв (Release хийвэл safe)", scenario: "unsafe",
     note: "Эхнээсээ UNSAFE. Туршиж үзнэ үү: P0 дээр Release (2,1) хийвэл төлөв SAFE болно." },
-  big: { name: "Том туршилт 10×5", data: bigScenario(10, 5, 2026), note: "10 процесс, 5 нөөц. Төлөв SAFE." }
+  big: { name: "Том туршилт 10×5", scenario: "big", note: "10 процесс, 5 нөөц. Төлөв SAFE." }
 };
-PRESETS.nobanker = { name: "Banker-гүй: Deadlock-д хүрэх", enforce: false, data: PRESETS.book.data,
+PRESETS.nobanker = { name: "Banker-гүй: UNSAFE төлөвт хүрэх", enforce: false, data: PRESETS.book.data,
   note: "Banker унтраалттай. Туршиж үзнэ үү: P1 (1,0,2), дараа нь P0 (0,2,0) хүс. Banker-тэй бол татгалзах байсан хүсэлт олгогдож, төлөв UNSAFE болно." };
 Object.keys(PRESETS).forEach((k) => { const o = el("option", null, PRESETS[k].name); o.value = k; $("preset").appendChild(o); });
-$("preset").onchange = async () => {
-  const k = $("preset").value; if (!k) return;
-  try { let data = await api("/api/load", "POST", PRESETS[k].data); const want = PRESETS[k].enforce !== false; if ((data.state.enforce !== false) !== want) data = await api("/api/mode", "POST", { enforce: want }); applyState(data.state); clearReq(); showMsg("loaded", "«" + PRESETS[k].name + "» сценарийг сонгож, төлвийг шалгалаа. " + PRESETS[k].note); }
-  catch (e) { fail(e); }
-};
+async function loadPreset(key) {
+  const preset = PRESETS[key];
+  if (!preset) return;
+
+  try {
+    const values = preset.scenario
+      ? (await api("/scenarios.json"))[preset.scenario]
+      : preset.data;
+    const data = await api("/api/load", "POST", {
+      ...values,
+      enforce: preset.enforce !== false
+    });
+    applyState(data.state);
+    $("preset").value = key;
+    clearReq();
+    showMsg("loaded", "«" + preset.name + "» " + preset.note);
+  } catch (e) {
+    fail(e);
+  }
+}
+$("preset").onchange = () => loadPreset($("preset").value);
 
 /* ---------- мэдэгдэл ---------- */
 const TITLES = { granted: "✔ Хүсэлтийг олгосон", released: "✔ Чөлөөлсөн", wait: "⏳ Хүлээлгэсэн: нөөц хүрэлцэхгүй",
@@ -497,7 +516,7 @@ function renderSafety() {
     const b = el("div", "unsafebox"); b.appendChild(el("b", null, "UNSAFE: Safe sequence байхгүй"));
     b.appendChild(document.createTextNode("Дараах процессууд дуусч чадахгүй (Need ≤ Work биш: нөөц хүрэлцэхгүй): "));
     b.appendChild(document.createElement("br")); stuck.forEach((i) => { const p = pill(i); p.style.margin = "4px 6px 0 0"; b.appendChild(p); });
-    if (state.enforce === false) { const w = el("div"); w.style.marginTop = "8px"; w.textContent = "Banker унтраалттай үед үлдсэн процессууд Max хүртэл хүсвэл бүгд хүлээж гацна: DEADLOCK."; b.appendChild(w); }
+    if (state.enforce === false) { const w = el("div"); w.style.marginTop = "8px"; w.textContent = "Бүх процессыг дуусгах аюулгүй дараалал олдсонгүй. Цаашдын хүсэлтээс шалтгаалан deadlock үүсэж болно."; b.appendChild(w); }
     seq.appendChild(b);
   }
   if (!state.steps.length) return;
@@ -517,7 +536,11 @@ function renderSafety() {
 function applyState(state) {
   stopPlay(); lastState = state; graphK = 0;
   draft = { available: state.available.map(String), max: state.max.map((r) => r.map(String)), allocation: state.allocation.map((r) => r.map(String)) };
-  applying = true; renderTables(); applying = false; $("dirty").hidden = true;
+  applying = true;
+  renderTables();
+  applying = false;
+  $("dirty").hidden = true;
+  lockDraftActions(false);
   $("kN").textContent = state.n; $("kM").textContent = state.m; $("kAvail").textContent = vec(state.available);
   const ks = $("kSeq"); ks.textContent = state.safe ? state.sequence.join(" → ") : "Байхгүй (UNSAFE)";
   const off = state.enforce === false; $("bankerOn").checked = !off; $("modewarn").hidden = !off;
@@ -544,7 +567,7 @@ $("btnApply").onclick = async () => {
     document.querySelectorAll("#tables input").forEach((i) => { if (!/^\d+$/.test(i.value.trim())) i.classList.add("invalid"); });
   }
 };
-$("btnExample").onclick = () => { $("preset").value = "book"; api("/api/example", "POST", {}).then((d) => { handleResult(d); clearReq(); }).catch(fail); };
+$("btnExample").onclick = () => loadPreset("book");
 $("btnReset").onclick = () => { $("preset").value = ""; api("/api/reset", "POST", {}).then((d) => { handleResult(d); clearReq(); }).catch(fail); };
 $("bankerOn").onchange = () => { const box = $("bankerOn"); api("/api/mode", "POST", { enforce: box.checked }).then(handleResult).catch((e) => { box.checked = !box.checked; fail(e); }); };
 $("btnRequest").onclick = () => doAction("request");
@@ -554,6 +577,7 @@ $("btnDelP").onclick = () => { if (draft.max.length > 1) { draft.max.pop(); draf
 $("btnAddR").onclick = () => { draft.available.push("0"); draft.max.forEach((r) => r.push("0")); draft.allocation.forEach((r) => r.push("0")); renderTables(); };
 $("btnDelR").onclick = () => { if (draft.available.length > 1) { draft.available.pop(); draft.max.forEach((r) => r.pop()); draft.allocation.forEach((r) => r.pop()); renderTables(); } else showMsg("error", "Дор хаяж 1 нөөц байх ёстой."); };
 
+lockDraftActions(true);
 renderLog();
 api("/api/state").then(applyState).catch(fail);
 </script>
